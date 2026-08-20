@@ -2,7 +2,7 @@
 
 import { Bell, Menu, PawPrint, ShoppingCart } from 'lucide-react'
 
-type View = 'inicio' | 'tienda' | 'servicios' | 'citas' | 'pacientes' | 'operaciones' | 'administracion' | 'caja' | 'roles' | 'reportes'
+type View = 'inicio' | 'tienda' | 'servicios' | 'citas' | 'pacientes' | 'cliente' | 'operaciones' | 'administracion' | 'caja' | 'roles' | 'reportes'
 
 type MainNavProps = {
   view: View
@@ -18,6 +18,7 @@ const links: [View, string][] = [
   ['servicios', 'Servicios'],
   ['citas', 'Citas'],
   ['pacientes', 'Mis mascotas'],
+  ['cliente', 'Mi panel'],
   ['operaciones', 'Panel operativo'],
   ['caja', 'Caja'],
   ['administracion', 'Administración'],
