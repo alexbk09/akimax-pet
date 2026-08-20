@@ -1,9 +1,9 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import AdminModule from '@/components/admin-module'
-import OperationsCalendar from '@/components/operations-calendar'
-import ServicesPage from '@/components/services-page'
+import AdminModule from '@/components/pages/admin/admin-page'
+import OperationsCalendar from '@/components/pages/operations/operations-calendar'
+import ServicesPage from '@/components/pages/services/services-page'
 import { MainNav } from '@/components/layout/main-nav'
 import { MetricCard } from '@/components/cards/metric-card'
 import {
