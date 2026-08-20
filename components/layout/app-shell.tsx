@@ -7,8 +7,9 @@ import ServicesPage from '@/components/pages/services/services-page'
 import ShopPage from '@/components/pages/shop/shop-page'
 import PatientsPage from '@/components/pages/patients/patients-page'
 import CashPage from '@/components/pages/cash/cash-page'
-import RolesPage from '@/components/pages/admin/roles-page'
-import { MainNav } from '@/components/layout/main-nav'
+  import RolesPage from '@/components/pages/admin/roles-page'
+  import ReportsPage from '@/components/pages/reports/reports-page'
+  import { MainNav } from '@/components/layout/main-nav'
 import { MetricCard } from '@/components/cards/metric-card'
 import {
   Activity,
@@ -41,7 +42,7 @@ import {
 
 const rate = 131.42
 
-type View = 'inicio' | 'tienda' | 'servicios' | 'citas' | 'pacientes' | 'operaciones' | 'administracion' | 'caja' | 'roles'
+  type View = 'inicio' | 'tienda' | 'servicios' | 'citas' | 'pacientes' | 'operaciones' | 'administracion' | 'caja' | 'roles' | 'reportes'
 type Role = 'Administrador' | 'Veterinario' | 'Caja'
 
 type Product = { id: number; name: string; category: string; price: number; stock: number; tone: string; icon: string }
@@ -127,6 +128,7 @@ export default function Home() {
   {view === 'caja' && <CashPage showToast={showToast} />}
   {view === 'administracion' && <AdminModule showToast={showToast} />}
   {view === 'roles' && <RolesPage showToast={showToast} />}
+  {view === 'reportes' && <ReportsPage />}
 
       {cartOpen && <CartDrawer cart={cart} total={cartTotal} changeQuantity={changeQuantity} onClose={() => setCartOpen(false)} checkout={() => { setCart([]); setCartOpen(false); showToast('Pedido enviado a caja') }} />}
       {toast && <div role="status" className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-2xl bg-[#173b3b] px-5 py-3 text-sm font-semibold text-white shadow-xl">{toast}</div>}

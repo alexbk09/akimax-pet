@@ -1,4 +1,4 @@
-export type View = 'inicio' | 'tienda' | 'servicios' | 'citas' | 'pacientes' | 'operaciones' | 'administracion' | 'caja' | 'roles'
+export type View = 'inicio' | 'tienda' | 'servicios' | 'citas' | 'pacientes' | 'operaciones' | 'administracion' | 'caja' | 'roles' | 'reportes'
 export type Product = { id: number; name: string; category: string; price: number; stock: number; tone: string; icon: string }
 export type CartItem = Product & { quantity: number }
 export type Pet = { name: string; species: string; initials: string; color: string; owner: string; last: string }
