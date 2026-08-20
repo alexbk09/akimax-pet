@@ -1,10 +1,16 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import AdminModule from '@/components/admin-module'
-import OperationsCalendar from '@/components/operations-calendar'
-import ServicesPage from '@/components/services-page'
-import { MainNav } from '@/components/layout/main-nav'
+import AdminModule from '@/components/pages/admin/admin-page'
+import OperationsCalendar from '@/components/pages/operations/operations-calendar'
+import ServicesPage from '@/components/pages/services/services-page'
+import ShopPage from '@/components/pages/shop/shop-page'
+import PatientsPage from '@/components/pages/patients/patients-page'
+import CashPage from '@/components/pages/cash/cash-page'
+  import RolesPage from '@/components/pages/admin/roles-page'
+  import ReportsPage from '@/components/pages/reports/reports-page'
+  import ClientPage from '@/components/pages/client/client-page'
+  import { MainNav } from '@/components/layout/main-nav'
 import { MetricCard } from '@/components/cards/metric-card'
 import {
   Activity,
@@ -37,7 +43,7 @@ import {
 
 const rate = 131.42
 
-type View = 'inicio' | 'tienda' | 'servicios' | 'citas' | 'pacientes' | 'operaciones' | 'administracion'
+  type View = 'inicio' | 'tienda' | 'servicios' | 'citas' | 'pacientes' | 'cliente' | 'operaciones' | 'administracion' | 'caja' | 'roles' | 'reportes'
 type Role = 'Administrador' | 'Veterinario' | 'Caja'
 
 type Product = { id: number; name: string; category: string; price: number; stock: number; tone: string; icon: string }
@@ -115,12 +121,16 @@ export default function Home() {
       <MainNav view={view} setView={setView} cartCount={cartCount} openCart={() => setCartOpen(true)} showToast={showToast} />
 
       {view === 'inicio' && <Dashboard setView={setView} hero={hero} setHero={setHero} />}
-      {view === 'tienda' && <Shop products={filteredProducts} search={search} setSearch={setSearch} category={category} setCategory={setCategory} addToCart={addToCart} setView={setView} />}
+      {view === 'tienda' && <ShopPage products={filteredProducts} search={search} setSearch={setSearch} category={category} setCategory={setCategory} addToCart={addToCart} setView={setView} />}
       {view === 'servicios' && <ServicesPage setView={setView} />}
       {view === 'citas' && <Appointments step={appointmentStep} setStep={setAppointmentStep} done={appointmentDone} setDone={setAppointmentDone} showToast={showToast} />}
-      {view === 'pacientes' && <Patients showToast={showToast} />}
-      {view === 'operaciones' && <Operations role={role} setRole={setRole} showToast={showToast} />}
-      {view === 'administracion' && <AdminModule showToast={showToast} />}
+      {view === 'pacientes' && <PatientsPage showToast={showToast} />}
+      {view === 'cliente' && <ClientPage setView={setView} />}
+{view === 'operaciones' && <Operations role={role} setRole={setRole} showToast={showToast} />}
+  {view === 'caja' && <CashPage showToast={showToast} />}
+  {view === 'administracion' && <AdminModule showToast={showToast} />}
+  {view === 'roles' && <RolesPage showToast={showToast} />}
+  {view === 'reportes' && <ReportsPage />}
 
       {cartOpen && <CartDrawer cart={cart} total={cartTotal} changeQuantity={changeQuantity} onClose={() => setCartOpen(false)} checkout={() => { setCart([]); setCartOpen(false); showToast('Pedido enviado a caja') }} />}
       {toast && <div role="status" className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-2xl bg-[#173b3b] px-5 py-3 text-sm font-semibold text-white shadow-xl">{toast}</div>}

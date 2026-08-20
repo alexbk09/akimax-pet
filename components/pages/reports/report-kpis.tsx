@@ -1,0 +1,5 @@
+import { Activity, CircleDollarSign, Package, Users } from 'lucide-react'
+
+const metrics = [{ label: 'Ventas netas', value: '$4,286.40', detail: '+12.8% vs. periodo anterior', icon: CircleDollarSign }, { label: 'Servicios realizados', value: '184', detail: '+8.4% este periodo', icon: Activity }, { label: 'Productos vendidos', value: '327', detail: 'Ticket promedio $18.60', icon: Package }, { label: 'Clientes atendidos', value: '96', detail: '21 clientes nuevos', icon: Users }]
+
+export function ReportKpis() { return <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{metrics.map(({ label, value, detail, icon: Icon }) => <article key={label} className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-[#e1ebe6]"><div className="flex items-center justify-between"><span className="text-xs font-bold uppercase tracking-[0.15em] text-[#89a198]">{label}</span><span className="flex size-9 items-center justify-center rounded-xl bg-[#e7f1eb] text-[#0d5c5b]"><Icon className="size-4" /></span></div><b className="mt-5 block font-serif text-3xl text-[#173b3b]">{value}</b><span className="mt-1 block text-xs font-semibold text-[#6f9c82]">{detail}</span></article>)}</div> }
