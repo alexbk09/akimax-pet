@@ -6,6 +6,8 @@ import OperationsCalendar from '@/components/pages/operations/operations-calenda
 import ServicesPage from '@/components/pages/services/services-page'
 import ShopPage from '@/components/pages/shop/shop-page'
 import PatientsPage from '@/components/pages/patients/patients-page'
+import CashPage from '@/components/pages/cash/cash-page'
+import RolesPage from '@/components/pages/admin/roles-page'
 import { MainNav } from '@/components/layout/main-nav'
 import { MetricCard } from '@/components/cards/metric-card'
 import {
@@ -39,7 +41,7 @@ import {
 
 const rate = 131.42
 
-type View = 'inicio' | 'tienda' | 'servicios' | 'citas' | 'pacientes' | 'operaciones' | 'administracion'
+type View = 'inicio' | 'tienda' | 'servicios' | 'citas' | 'pacientes' | 'operaciones' | 'administracion' | 'caja' | 'roles'
 type Role = 'Administrador' | 'Veterinario' | 'Caja'
 
 type Product = { id: number; name: string; category: string; price: number; stock: number; tone: string; icon: string }
@@ -121,8 +123,10 @@ export default function Home() {
       {view === 'servicios' && <ServicesPage setView={setView} />}
       {view === 'citas' && <Appointments step={appointmentStep} setStep={setAppointmentStep} done={appointmentDone} setDone={setAppointmentDone} showToast={showToast} />}
       {view === 'pacientes' && <PatientsPage showToast={showToast} />}
-      {view === 'operaciones' && <Operations role={role} setRole={setRole} showToast={showToast} />}
-      {view === 'administracion' && <AdminModule showToast={showToast} />}
+{view === 'operaciones' && <Operations role={role} setRole={setRole} showToast={showToast} />}
+  {view === 'caja' && <CashPage showToast={showToast} />}
+  {view === 'administracion' && <AdminModule showToast={showToast} />}
+  {view === 'roles' && <RolesPage showToast={showToast} />}
 
       {cartOpen && <CartDrawer cart={cart} total={cartTotal} changeQuantity={changeQuantity} onClose={() => setCartOpen(false)} checkout={() => { setCart([]); setCartOpen(false); showToast('Pedido enviado a caja') }} />}
       {toast && <div role="status" className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-2xl bg-[#173b3b] px-5 py-3 text-sm font-semibold text-white shadow-xl">{toast}</div>}
