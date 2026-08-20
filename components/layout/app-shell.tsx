@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react'
 import AdminModule from '@/components/pages/admin/admin-page'
 import OperationsCalendar from '@/components/pages/operations/operations-calendar'
 import ServicesPage from '@/components/pages/services/services-page'
+import ShopPage from '@/components/pages/shop/shop-page'
+import PatientsPage from '@/components/pages/patients/patients-page'
 import { MainNav } from '@/components/layout/main-nav'
 import { MetricCard } from '@/components/cards/metric-card'
 import {
@@ -115,10 +117,10 @@ export default function Home() {
       <MainNav view={view} setView={setView} cartCount={cartCount} openCart={() => setCartOpen(true)} showToast={showToast} />
 
       {view === 'inicio' && <Dashboard setView={setView} hero={hero} setHero={setHero} />}
-      {view === 'tienda' && <Shop products={filteredProducts} search={search} setSearch={setSearch} category={category} setCategory={setCategory} addToCart={addToCart} setView={setView} />}
+      {view === 'tienda' && <ShopPage products={filteredProducts} search={search} setSearch={setSearch} category={category} setCategory={setCategory} addToCart={addToCart} setView={setView} />}
       {view === 'servicios' && <ServicesPage setView={setView} />}
       {view === 'citas' && <Appointments step={appointmentStep} setStep={setAppointmentStep} done={appointmentDone} setDone={setAppointmentDone} showToast={showToast} />}
-      {view === 'pacientes' && <Patients showToast={showToast} />}
+      {view === 'pacientes' && <PatientsPage showToast={showToast} />}
       {view === 'operaciones' && <Operations role={role} setRole={setRole} showToast={showToast} />}
       {view === 'administracion' && <AdminModule showToast={showToast} />}
 
