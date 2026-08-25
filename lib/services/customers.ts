@@ -64,19 +64,19 @@ export async function getPetsByCustomer(customerId: number): Promise<Pet[]> {
   return (data ?? []) as Pet[]
 }
 
-/** Obtiene todas las mascotas (con dueño) con paginación. */
+/** Obtiene todas las mascotas (con dueño y especie) con paginación. */
 export async function getPets(options: {
   page?: number
   pageSize?: number
   search?: string
-} = {}): Promise<PaginatedResult<Pet & { customer_name: string; last_record?: string | null }>> {
+} = {}): Promise<PaginatedResult<Pet & { customer_name: string; species_name: string | null }>> {
   const { page = 1, pageSize = PAGE_SIZE, search = '' } = options
   const from = (page - 1) * pageSize
   const to = from + pageSize - 1
 
   let query = supabase
     .from('pets')
-    .select('*, customers(name)', { count: 'exact' })
+    .select('*, customers(name), species(name)', { count: 'exact' })
     .order('name')
     .range(from, to)
 
@@ -85,21 +85,42 @@ export async function getPets(options: {
   const { data, error, count } = await query
   if (error) throw error
 
-  const rows = (data ?? []).map((row) => ({
-    ...row,
-    customer_name: (row as unknown as { customers: { name: string } }).customers?.name ?? '',
-  }))
+  const rows = (data ?? []).map((row) => {
+    const raw = row as unknown as {
+      customers: { name: string } | null
+      species: { name: string } | null
+    }
+    return {
+      ...row,
+      customer_name: raw.customers?.name ?? '',
+      species_name: raw.species?.name ?? null,
+    }
+  })
 
   return {
-    data: rows as (Pet & { customer_name: string })[],
+    data: rows as (Pet & { customer_name: string; species_name: string | null })[],
     count: count ?? 0,
     hasMore: (count ?? 0) > from + (data?.length ?? 0),
   }
 }
 
-/** Crea una mascota. */
-export async function createPet(pet: Omit<Pet, 'id' | 'created_at'>): Promise<Pet> {
-  const { data, error } = await supabase.from('pets').insert(pet).select().single()
+/** Crea una mascota con todos los campos (imagen, especie, tamaño). */
+export async function createPet(pet: Omit<Pet, 'id' | 'created_at' | 'initials'> & { initials?: string }): Promise<Pet> {
+  const initials = pet.initials ?? pet.name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+
+  const { data, error } = await supabase.from('pets').insert({ ...pet, initials }).select().single()
+  if (error) throw error
+  return data as Pet
+}
+
+/** Actualiza una mascota existente. */
+export async function updatePet(petId: number, patch: Partial<Pet>): Promise<Pet> {
+  const { data, error } = await supabase.from('pets').update(patch).eq('id', petId).select().single()
   if (error) throw error
   return data as Pet
 }

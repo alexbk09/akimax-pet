@@ -1,12 +1,13 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { CalendarDays, ChevronRight, CircleDollarSign, HeartPulse, Loader2, PawPrint, Plus, ShoppingBag, Syringe } from 'lucide-react'
+import { CalendarDays, ChevronRight, CircleDollarSign, HeartPulse, PawPrint, Plus, ShoppingBag, Syringe } from 'lucide-react'
 import { useAuth } from '@/lib/hooks'
-import { createMyPet, getMyCustomer, getMyPets, getMySpending, getMyUpcomingAppointments, getNextPetCare, getMyMedicalRecords } from '@/lib/services'
+import { getMyCustomer, getMyPets, getMySpending, getMyUpcomingAppointments, getNextPetCare, getMyMedicalRecords } from '@/lib/services'
 import type { MyAppointment } from '@/lib/services/client-area'
 import type { MedicalRecord, Pet, SetView, Toast } from '@/lib/types'
 import { PageLoader, EmptyState } from '@/components/ui'
+import PetFormModal from '@/components/pages/patients/pet-form-modal'
 
 /** Dashboard del cliente autenticado conectado a Supabase. */
 export default function ClientPage({ setView, showToast }: { setView: SetView; showToast: Toast }) {
@@ -64,23 +65,10 @@ export default function ClientPage({ setView, showToast }: { setView: SetView; s
   const nextAppointment = appointments[0]
   const totalMonth = spending.totalUsd
 
-  async function handleAddPet(input: { name: string; species: string; breed: string; birth_date: string; weight_kg: string; color: string }) {
-    if (!customerId) return
-    try {
-      await createMyPet(customerId, {
-        name: input.name.trim(),
-        species: input.species.trim(),
-        breed: input.breed.trim() || null,
-        birth_date: input.birth_date || null,
-        weight_kg: input.weight_kg ? Number(input.weight_kg) : null,
-        color: input.color || null,
-      })
-      setShowAddPet(false)
-      showToast(`${input.name.trim()} agregado(a) a tu familia`)
-      await loadAll()
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'No pudimos agregar la mascota')
-    }
+  /** Cierra el modal y recarga los datos. */
+  function handlePetSaved() {
+    setShowAddPet(false)
+    void loadAll()
   }
 
   if (loading) return <PageLoader label="Cargando tu espacio..." />
@@ -120,7 +108,11 @@ export default function ClientPage({ setView, showToast }: { setView: SetView; s
             {pets.length > 0 ? pets.map((pet) => (
               <article key={pet.id} className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-[#e1ebe6]">
                 <div className="flex items-start justify-between">
-                  <span className={`flex size-14 items-center justify-center rounded-2xl ${pet.color ?? 'bg-[#e7f0df]'} text-[#0d5c5b]`}><PawPrint className="size-6" /></span>
+                  {pet.image_url ? (
+                    <img src={pet.image_url} alt={pet.name} className="size-14 rounded-2xl object-cover" />
+                  ) : (
+                    <span className={`flex size-14 items-center justify-center rounded-2xl ${pet.color ?? 'bg-[#e7f0df]'} text-[#0d5c5b]`}><PawPrint className="size-6" /></span>
+                  )}
                   <button onClick={() => setView('pacientes')} aria-label={`Ver ficha de ${pet.name}`} className="rounded-xl p-2 text-[#8aa096] hover:bg-[#f1f6f2]"><ChevronRight className="size-4" /></button>
                 </div>
                 <h3 className="mt-5 font-serif text-2xl font-bold text-[#173b3b]">{pet.name}</h3>
@@ -191,9 +183,10 @@ export default function ClientPage({ setView, showToast }: { setView: SetView; s
       </section>
 
       {showAddPet && (
-        <AddPetModal
+        <PetFormModal
           onClose={() => setShowAddPet(false)}
-          onSave={handleAddPet}
+          onSaved={handlePetSaved}
+          showToast={showToast}
         />
       )}
     </main>
@@ -216,90 +209,6 @@ function SectionHeading({ eyebrow, title, action }: { eyebrow: string; title: st
     <div className="flex items-end justify-between gap-4">
       <div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#d37c52]">{eyebrow}</p><h2 className="mt-2 font-serif text-2xl font-bold text-[#173b3b]">{title}</h2></div>
       {action}
-    </div>
-  )
-}
-
-function AddPetModal({ onClose, onSave }: { onClose: () => void; onSave: (input: { name: string; species: string; breed: string; birth_date: string; weight_kg: string; color: string }) => Promise<void> }) {
-  const [name, setName] = useState('')
-  const [species, setSpecies] = useState('Perro')
-  const [breed, setBreed] = useState('')
-  const [birthDate, setBirthDate] = useState('')
-  const [weight, setWeight] = useState('')
-  const [color, setColor] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault()
-    if (!name.trim()) { setError('Escribe el nombre de tu mascota.'); return }
-    setSaving(true)
-    setError('')
-    try {
-      await onSave({ name, species, breed, birth_date: birthDate, weight_kg: weight, color })
-    } catch {
-      setError('No pudimos guardar. Intenta de nuevo.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const inputClass = 'w-full rounded-xl border-0 bg-[#f7f9f7] px-4 py-3 text-sm outline-none ring-1 ring-[#e1ebe6] placeholder:text-[#a0b4ac] focus:ring-2 focus:ring-[#9ec6b0]'
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden="true" />
-      <form onSubmit={handleSubmit} className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl md:p-8">
-        <div className="flex items-center gap-4">
-          <span className="flex size-12 items-center justify-center rounded-2xl bg-[#e7f1eb] text-[#0d5c5b]"><PawPrint className="size-6" /></span>
-          <div><h2 className="font-serif text-2xl font-bold text-[#173b3b]">Nueva mascota</h2><p className="text-sm text-[#78918a]">Cuéntanos sobre tu compañero(a).</p></div>
-        </div>
-
-        <div className="mt-6 space-y-4">
-          <div>
-            <span className="text-sm font-semibold text-[#173b3b]">Nombre *</span>
-            <input type="text" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Luna" className={`mt-1.5 ${inputClass}`} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <span className="text-sm font-semibold text-[#173b3b]">Especie</span>
-              <select value={species} onChange={(e) => setSpecies(e.target.value)} className={`mt-1.5 ${inputClass}`}>
-                <option>Perro</option>
-                <option>Gato</option>
-                <option>Otro</option>
-              </select>
-            </div>
-            <div>
-              <span className="text-sm font-semibold text-[#173b3b]">Raza</span>
-              <input type="text" value={breed} onChange={(e) => setBreed(e.target.value)} placeholder="Golden Retriever" className={`mt-1.5 ${inputClass}`} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <span className="text-sm font-semibold text-[#173b3b]">Fecha de nacimiento</span>
-              <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className={`mt-1.5 ${inputClass}`} />
-            </div>
-            <div>
-              <span className="text-sm font-semibold text-[#173b3b]">Peso (kg)</span>
-              <input type="number" step="0.1" min="0" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="12.5" className={`mt-1.5 ${inputClass}`} />
-            </div>
-          </div>
-          <div>
-            <span className="text-sm font-semibold text-[#173b3b]">Color / tono</span>
-            <input type="text" value={color} onChange={(e) => setColor(e.target.value)} placeholder="Dorado" className={`mt-1.5 ${inputClass}`} />
-          </div>
-        </div>
-
-        {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p>}
-
-        <div className="mt-6 flex gap-3">
-          <button type="button" onClick={onClose} className="flex-1 rounded-xl bg-[#f1f6f2] px-5 py-3 text-sm font-bold text-[#52756c]">Cancelar</button>
-          <button type="submit" disabled={saving} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#0d5c5b] px-5 py-3 text-sm font-bold text-white disabled:opacity-60">
-            {saving ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-            {saving ? 'Guardando...' : 'Guardar'}
-          </button>
-        </div>
-      </form>
     </div>
   )
 }

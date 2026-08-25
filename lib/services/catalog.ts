@@ -67,11 +67,14 @@ export async function getServices(options: {
   const { data, error, count } = await query
   if (error) throw error
 
-  const rows = (data ?? []).map((row) => ({
-    ...row,
-    prices: (row as unknown as { service_prices: unknown[] }).service_prices ?? [],
-    category: 'Servicios',
-  }))
+  const rows = (data ?? []).map((row) => {
+    const raw = row as unknown as { service_prices: unknown[] }
+    return {
+      ...row,
+      prices: raw.service_prices ?? [],
+      category: 'Servicios',
+    }
+  })
 
   return { data: rows as Service[], count: count ?? 0, hasMore: (count ?? 0) > from + rows.length }
 }

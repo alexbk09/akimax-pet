@@ -49,14 +49,14 @@ export async function getAppointments(filters: AppointmentFilters = {}) {
   return { data: rows as (Appointment & { pet_name: string; service_name: string; customer_name: string; professional_name: string })[], count: count ?? 0 }
 }
 
-/** Crea una nueva cita. */
-export async function createAppointment(appointment: Omit<Appointment, 'id' | 'created_at'>): Promise<Appointment> {
+/** Crea una nueva cita (con hora fin para detectar conflictos). */
+export async function createAppointment(appointment: Omit<Appointment, 'id' | 'created_at'> & { end_time?: string | null }): Promise<Appointment> {
   const { data, error } = await supabase.from('appointments').insert(appointment).select().single()
   if (error) throw error
   return data as Appointment
 }
 
-/** Actualiza una cita (estado, fecha, notas, etc). */
+/** Actualiza una cita (estado, fecha, notas, hora fin, etc). */
 export async function updateAppointment(id: number, patch: Partial<Appointment>): Promise<Appointment> {
   const { data, error } = await supabase.from('appointments').update(patch).eq('id', id).select().single()
   if (error) throw error

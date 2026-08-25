@@ -3,9 +3,12 @@
 import { useState } from 'react'
 import AdminModule from '@/components/pages/admin/admin-page'
 import OperationsCalendar from '@/components/pages/operations/operations-calendar'
+import SpeciesManager from '@/components/pages/operations/species-manager'
+import ScheduleManager from '@/components/pages/operations/schedule-manager'
 import ServicesPage from '@/components/pages/services/services-page'
 import ShopPage from '@/components/pages/shop/shop-page'
 import PatientsPage from '@/components/pages/patients/patients-page'
+import AppointmentsPage from '@/components/pages/appointments/appointments-page'
 import CashPage from '@/components/pages/cash/cash-page'
 import RolesPage from '@/components/pages/admin/roles-page'
 import ReportsPage from '@/components/pages/reports/reports-page'
@@ -60,7 +63,7 @@ export default function AppShell() {
         {view === 'inicio' && (isAuthenticated ? <DashboardView setView={setView} /> : <LandingPage setView={setView} />)}
         {view === 'tienda' && <ShopPage setView={setView} />}
         {view === 'servicios' && <ServicesPage setView={setView} />}
-        {view === 'citas' && <RoleGuard permission="appointments:view" onAuthRequired={requireLogin}><Appointments showToast={showToast} /></RoleGuard>}
+        {view === 'citas' && <RoleGuard permission="appointments:view" onAuthRequired={requireLogin}><AppointmentsPage showToast={showToast} /></RoleGuard>}
         {view === 'pacientes' && <RoleGuard permission="patients:view" onAuthRequired={requireLogin}><PatientsPage showToast={showToast} /></RoleGuard>}
         {view === 'cliente' && <RoleGuard permission="dashboard:view" onAuthRequired={requireLogin}><ClientPage setView={setView} showToast={showToast} /></RoleGuard>}
         {view === 'perfil' && <RoleGuard permission="dashboard:view" onAuthRequired={requireLogin}><ProfilePage showToast={showToast} /></RoleGuard>}
@@ -79,20 +82,6 @@ export default function AppShell() {
   )
 }
 
-function Appointments({ showToast }: { showToast: (message: string) => void }) {
-  return (
-    <div className="mx-auto max-w-[1000px] px-6 py-10 lg:px-10">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-[#d37c52]">Agenda sin llamadas</p>
-          <h2 className="font-serif text-3xl font-bold tracking-tight text-[#173b3b]">Reserva un momento para ellos</h2>
-          <p className="mt-2 text-sm leading-6 text-[#78918a]">Te tomará menos de dos minutos.</p>
-        </div>
-      </div>
-      <button onClick={() => showToast('Cita reservada correctamente')} className="mt-6 rounded-xl bg-[#0d5c5b] px-5 py-3 text-sm font-bold text-white">Reservar cita</button>
-    </div>
-  )
-}
 
 function Operations({ showToast }: { showToast: (message: string) => void }) {
   return (
@@ -105,6 +94,11 @@ function Operations({ showToast }: { showToast: (message: string) => void }) {
           <p className="mt-2 text-sm leading-6 text-[#78918a]">Gestiona la operación diaria desde un mismo lugar.</p>
         </div>
         <button onClick={() => showToast('Datos actualizados')} className="rounded-xl bg-[#e7f1eb] px-3 py-2 text-xs font-bold text-[#0d5c5b]">Actualizar</button>
+      </div>
+
+      <div className="mt-10 flex flex-col gap-8">
+        <SpeciesManager showToast={showToast} />
+        <ScheduleManager showToast={showToast} />
       </div>
     </div>
   )

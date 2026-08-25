@@ -109,6 +109,7 @@ export interface Service {
   category?: string
   area: 'Veterinaria' | 'Peluquería'
   duration: string
+  duration_minutes?: number
   description: string
   status: 'Activo' | 'Inactivo'
   prices: ServicePrice[]
@@ -139,18 +140,49 @@ export interface Customer {
   created_at: string
 }
 
+export interface Breed {
+  id: number
+  species_id: number
+  name: string
+  slug: string
+  created_at: string
+}
+
+export interface Species {
+  id: number
+  name: string
+  slug: string
+  description: string
+  icon: string
+  status: 'Activo' | 'Inactivo'
+  created_at: string
+}
+
 export interface Pet {
   id: number
   customer_id: number
   name: string
   species: string
+  species_id?: number | null
   breed?: string | null
   birth_date?: string | null
   weight_kg?: number | null
+  size?: 'Pequeño' | 'Mediano' | 'Grande' | null
   color?: string | null
+  image_url?: string | null
   initials: string
   owner?: string | null
   last?: string | null
+  created_at: string
+}
+
+export interface ProfessionalSchedule {
+  id: number
+  professional_id: string
+  day_of_week: number
+  start_time: string
+  end_time: string
+  is_working: boolean
   created_at: string
 }
 
@@ -176,6 +208,7 @@ export interface Appointment {
   professional_id: string | null
   date: string
   time: string
+  end_time?: string | null
   status: AppointmentStatus
   notes?: string | null
   created_at: string
