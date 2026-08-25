@@ -1,172 +1,109 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import AdminModule from '@/components/pages/admin/admin-page'
 import OperationsCalendar from '@/components/pages/operations/operations-calendar'
 import ServicesPage from '@/components/pages/services/services-page'
 import ShopPage from '@/components/pages/shop/shop-page'
 import PatientsPage from '@/components/pages/patients/patients-page'
 import CashPage from '@/components/pages/cash/cash-page'
-  import RolesPage from '@/components/pages/admin/roles-page'
-  import ReportsPage from '@/components/pages/reports/reports-page'
-  import ClientPage from '@/components/pages/client/client-page'
-  import { MainNav } from '@/components/layout/main-nav'
-import { MetricCard } from '@/components/cards/metric-card'
-import {
-  Activity,
-  ArrowRight,
-  CalendarDays,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  CircleDollarSign,
-  ClipboardList,
-  Clock3,
-  CreditCard,
-  Dog,
-  Filter,
-  HeartPulse,
-  LayoutDashboard,
-  Minus,
-  Package,
-  PawPrint,
-  Plus,
-  Search,
-  ShoppingBag,
-  Stethoscope,
-  Syringe,
-  Trash2,
-  UserRound,
-  Users,
-  X,
-} from 'lucide-react'
+import RolesPage from '@/components/pages/admin/roles-page'
+import ReportsPage from '@/components/pages/reports/reports-page'
+import ClientPage from '@/components/pages/client/client-page'
+import { LandingPage } from '@/components/pages/landing/landing-page'
+import { DashboardView } from '@/components/pages/landing/dashboard-view'
+import { LoginPage } from '@/components/pages/auth/login-page'
+import { RegisterPage } from '@/components/pages/auth/register-page'
+import { ContactPage } from '@/components/pages/contact/contact-page'
+import { MainNav } from '@/components/layout/main-nav'
+import { PublicFooter } from '@/components/layout/public-footer'
+import { CartDrawer } from '@/components/cart/cart-drawer'
+import { RoleGuard } from '@/components/ui'
+import { useAuth, useCart, useExchangeRate } from '@/lib/hooks'
+import type { View } from '@/lib/types'
 
-const rate = 131.42
-
-  type View = 'inicio' | 'tienda' | 'servicios' | 'citas' | 'pacientes' | 'cliente' | 'operaciones' | 'administracion' | 'caja' | 'roles' | 'reportes'
-type Role = 'Administrador' | 'Veterinario' | 'Caja'
-
-type Product = { id: number; name: string; category: string; price: number; stock: number; tone: string; icon: string }
-type CartItem = Product & { quantity: number }
-
-const products: Product[] = [
-  { id: 1, name: 'Alimento VitalCan Adulto', category: 'Alimentos', price: 24.9, stock: 12, tone: 'bg-[#e8f3ef]', icon: 'bag' },
-  { id: 2, name: 'Collar Soft Touch', category: 'Accesorios', price: 12.5, stock: 8, tone: 'bg-[#f1eee7]', icon: 'collar' },
-  { id: 3, name: 'Pipeta Antipulgas', category: 'Cuidado', price: 8.75, stock: 4, tone: 'bg-[#e8eef4]', icon: 'drop' },
-  { id: 4, name: 'Cama Nube Mediana', category: 'Accesorios', price: 39.0, stock: 7, tone: 'bg-[#edf0e7]', icon: 'bed' },
-  { id: 5, name: 'Snacks Dentales', category: 'Alimentos', price: 6.4, stock: 20, tone: 'bg-[#f4ede6]', icon: 'bone' },
-  { id: 6, name: 'Shampoo Dermoprotector', category: 'Cuidado', price: 15.2, stock: 9, tone: 'bg-[#e8f0f0]', icon: 'bottle' },
-]
-
-const services = [
-  { name: 'Consulta general', detail: 'Cuidado preventivo y diagnóstico', price: '$25', icon: Stethoscope },
-  { name: 'Peluquería & spa', detail: 'Una experiencia que se nota', price: '$18', icon: ScissorsIcon },
-  { name: 'Cirugía especializada', detail: 'Tecnología, cuidado y confianza', price: 'Desde $120', icon: Syringe },
-]
-
-const pets = [
-  { name: 'Luna', species: 'Golden Retriever · 4 años', initials: 'LU', color: 'bg-[#e7f0df]', owner: 'Tu mascota', last: 'Control anual · 12 Jun' },
-  { name: 'Simón', species: 'Gato mestizo · 2 años', initials: 'SI', color: 'bg-[#e9e6f1]', owner: 'Tu mascota', last: 'Vacuna triple · 03 Abr' },
-]
-
-function ScissorsIcon(props: React.ComponentProps<'svg'>) {
-  return <Activity {...props} />
-}
-
-function formatVES(value: number) {
-  return `Bs. ${(value * rate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
-export default function Home() {
+/**
+ * Shell principal: orquesta módulos, control de acceso por permisos
+ * y estado global (auth, carrito, tasa de cambio).
+ */
+export default function AppShell() {
   const [view, setView] = useState<View>('inicio')
-  const [role, setRole] = useState<Role>('Administrador')
-  const [cart, setCart] = useState<CartItem[]>([])
   const [cartOpen, setCartOpen] = useState(false)
-  const [search, setSearch] = useState('')
-  const [category, setCategory] = useState('Todos')
-  const [hero, setHero] = useState(0)
-  const [appointmentStep, setAppointmentStep] = useState(1)
-  const [appointmentDone, setAppointmentDone] = useState(false)
   const [toast, setToast] = useState('')
-
-  const filteredProducts = useMemo(() => products.filter((product) => {
-    const matchSearch = product.name.toLowerCase().includes(search.toLowerCase())
-    const matchCategory = category === 'Todos' || product.category === category
-    return matchSearch && matchCategory
-  }), [search, category])
-
-  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
+  const { loading: authLoading, isAuthenticated } = useAuth()
+  const { items, count, subtotal, updateQuantity, removeItem, clearCart } = useCart()
+  const { rate } = useExchangeRate()
 
   function showToast(message: string) {
     setToast(message)
     window.setTimeout(() => setToast(''), 2400)
   }
 
-  function addToCart(product: Product) {
-    setCart((current) => {
-      const existing = current.find((item) => item.id === product.id)
-      if (existing) return current.map((item) => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item)
-      return [...current, { ...product, quantity: 1 }]
-    })
-    showToast(`${product.name} agregado al carrito`)
+  function requireLogin() {
+    setView('login')
   }
 
-  function changeQuantity(id: number, amount: number) {
-    setCart((current) => current.flatMap((item) => item.id === id ? (item.quantity + amount > 0 ? [{ ...item, quantity: item.quantity + amount }] : []) : [item]))
+  if (authLoading) {
+    return <div className="flex min-h-screen items-center justify-center"><p className="text-sm font-semibold text-[#78918a]">Cargando sesión...</p></div>
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f9f7] text-[#173b3b]">
-      <MainNav view={view} setView={setView} cartCount={cartCount} openCart={() => setCartOpen(true)} showToast={showToast} />
+    <div className="flex min-h-screen flex-col bg-[#f7f9f7] text-[#173b3b]">
+      <MainNav view={view} setView={setView} cartCount={count} openCart={() => setCartOpen(true)} showToast={showToast} />
 
-      {view === 'inicio' && <Dashboard setView={setView} hero={hero} setHero={setHero} />}
-      {view === 'tienda' && <ShopPage products={filteredProducts} search={search} setSearch={setSearch} category={category} setCategory={setCategory} addToCart={addToCart} setView={setView} />}
-      {view === 'servicios' && <ServicesPage setView={setView} />}
-      {view === 'citas' && <Appointments step={appointmentStep} setStep={setAppointmentStep} done={appointmentDone} setDone={setAppointmentDone} showToast={showToast} />}
-      {view === 'pacientes' && <PatientsPage showToast={showToast} />}
-      {view === 'cliente' && <ClientPage setView={setView} />}
-{view === 'operaciones' && <Operations role={role} setRole={setRole} showToast={showToast} />}
-  {view === 'caja' && <CashPage showToast={showToast} />}
-  {view === 'administracion' && <AdminModule showToast={showToast} />}
-  {view === 'roles' && <RolesPage showToast={showToast} />}
-  {view === 'reportes' && <ReportsPage />}
+      <main className="flex-1">
+        {view === 'login' && <LoginPage setView={setView} />}
+        {view === 'registro' && <RegisterPage setView={setView} />}
+        {view === 'contacto' && <ContactPage setView={setView} />}
 
-      {cartOpen && <CartDrawer cart={cart} total={cartTotal} changeQuantity={changeQuantity} onClose={() => setCartOpen(false)} checkout={() => { setCart([]); setCartOpen(false); showToast('Pedido enviado a caja') }} />}
+        {view === 'inicio' && (isAuthenticated ? <DashboardView setView={setView} /> : <LandingPage setView={setView} />)}
+        {view === 'tienda' && <ShopPage setView={setView} />}
+        {view === 'servicios' && <ServicesPage setView={setView} />}
+        {view === 'citas' && <RoleGuard permission="appointments:view" onAuthRequired={requireLogin}><Appointments showToast={showToast} /></RoleGuard>}
+        {view === 'pacientes' && <RoleGuard permission="patients:view" onAuthRequired={requireLogin}><PatientsPage showToast={showToast} /></RoleGuard>}
+        {view === 'cliente' && <RoleGuard permission="dashboard:view" onAuthRequired={requireLogin}><ClientPage setView={setView} /></RoleGuard>}
+        {view === 'operaciones' && <RoleGuard permission="dashboard:view" onAuthRequired={requireLogin}><Operations showToast={showToast} /></RoleGuard>}
+        {view === 'caja' && <RoleGuard permission="cash:view" onAuthRequired={requireLogin}><CashPage showToast={showToast} /></RoleGuard>}
+        {view === 'administracion' && <RoleGuard permission="catalog:manage" onAuthRequired={requireLogin}><AdminModule showToast={showToast} /></RoleGuard>}
+        {view === 'roles' && <RoleGuard permission="roles:manage" onAuthRequired={requireLogin}><RolesPage showToast={showToast} /></RoleGuard>}
+        {view === 'reportes' && <RoleGuard permission="reports:view" onAuthRequired={requireLogin}><ReportsPage /></RoleGuard>}
+      </main>
+
+      <PublicFooter setView={setView} />
+
+      {cartOpen && <CartDrawer items={items} total={subtotal} rate={rate} onChangeQuantity={updateQuantity} onRemove={removeItem} onClose={() => setCartOpen(false)} onCheckout={() => { clearCart(); setCartOpen(false); showToast('Pedido enviado a caja') }} />}
       {toast && <div role="status" className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-2xl bg-[#173b3b] px-5 py-3 text-sm font-semibold text-white shadow-xl">{toast}</div>}
-    </main>
+    </div>
   )
 }
 
-function SectionTitle({ eyebrow, title, detail, action }: { eyebrow: string; title: string; detail?: string; action?: React.ReactNode }) {
-  return <div className="flex items-end justify-between gap-4"><div><p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-[#d37c52]">{eyebrow}</p><h2 className="font-serif text-3xl font-bold tracking-tight text-[#173b3b]">{title}</h2>{detail && <p className="mt-2 text-sm leading-6 text-[#78918a]">{detail}</p>}</div>{action}</div>
+function Appointments({ showToast }: { showToast: (message: string) => void }) {
+  return (
+    <div className="mx-auto max-w-[1000px] px-6 py-10 lg:px-10">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-[#d37c52]">Agenda sin llamadas</p>
+          <h2 className="font-serif text-3xl font-bold tracking-tight text-[#173b3b]">Reserva un momento para ellos</h2>
+          <p className="mt-2 text-sm leading-6 text-[#78918a]">Te tomará menos de dos minutos.</p>
+        </div>
+      </div>
+      <button onClick={() => showToast('Cita reservada correctamente')} className="mt-6 rounded-xl bg-[#0d5c5b] px-5 py-3 text-sm font-bold text-white">Reservar cita</button>
+    </div>
+  )
 }
 
-function ContactFooter({ setView }: { setView: (view: View) => void }) { return <><section className="mt-14 rounded-[2rem] bg-[#e4efe8] p-8 md:p-12 lg:flex lg:items-center lg:justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-[#d37c52]">Siempre cerca</p><h2 className="mt-2 font-serif text-3xl font-bold text-[#173b3b]">¿Listos para una vida más feliz juntos?</h2><p className="mt-3 max-w-xl text-sm leading-6 text-[#66817a]">Escríbenos, visítanos o agenda una cita. Nuestro equipo está listo para acompañar cada etapa.</p></div><div className="mt-6 grid gap-3 text-sm text-[#52756c] lg:mt-0 lg:min-w-72"><a href="tel:+584121234567" className="font-semibold hover:text-[#0d5c5b]">+58 412 123 4567</a><a href="mailto:hola@akimaxpet.com" className="font-semibold hover:text-[#0d5c5b]">hola@akimaxpet.com</a><span>Av. Principal, Las Mercedes · Lun–Sáb 8:00–18:00</span></div></section><footer className="mt-14 border-t border-[#dce7e2] py-8"><div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between"><button onClick={() => setView('inicio')} className="flex items-center gap-3 text-left"><span className="flex size-9 items-center justify-center rounded-xl bg-[#0d5c5b] text-[#e7f1df]"><PawPrint className="size-4" /></span><span><b className="font-serif text-lg">akimax</b><small className="ml-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#79938a]">pet clinic & shop</small></span></button><div className="flex items-center gap-5 text-sm font-semibold text-[#78918a]"><button onClick={() => setView('servicios')}>Servicios</button><button onClick={() => setView('tienda')}>Pet shop</button><a href="https://instagram.com" target="_blank" rel="noreferrer">Instagram</a><a href="https://wa.me/584121234567" target="_blank" rel="noreferrer">WhatsApp</a></div></div><p className="mt-7 text-xs text-[#9aafa7]">© 2024 akimax pet. Cuidado que se siente.</p></footer></> }
-
-function Dashboard({ setView, hero, setHero }: { setView: (view: View) => void; hero: number; setHero: (value: number) => void }) {
-  const slides = [{ kicker: 'Cuidado que se siente', title: 'Su bienestar, nuestra forma de estar cerca.', text: 'Todo lo que tu mascota necesita, en un mismo lugar y con un equipo que sí conoce su nombre.', cta: 'Agendar una cita' }, { kicker: 'Tu pet shop de confianza', title: 'Pequeños rituales. Grandes colas felices.', text: 'Alimentos, accesorios y cuidado diario elegidos por veterinarios.', cta: 'Explorar tienda' }, { kicker: 'Una nueva forma de acompañar', title: 'Más etapas. Más historias. Más vida juntos.', text: 'Programas para cachorros, seniors y familias multiespecie, creados alrededor de lo que los hace únicos.', cta: 'Conocer programas' }]
-  const active = slides[hero]
-  return <div className="mx-auto max-w-[1440px] px-6 py-8 lg:px-10 lg:py-10">
-    <section className="relative overflow-hidden rounded-[2rem] bg-[#dfeee7] p-8 md:p-12 lg:min-h-[330px] lg:p-16"><div className="relative z-10 max-w-xl"><p className="mb-4 text-xs font-bold uppercase tracking-[0.25em] text-[#d37c52]">{active.kicker}</p><h1 className="font-serif text-4xl font-bold leading-[1.05] tracking-tight text-[#0d5c5b] md:text-6xl">{active.title}</h1><p className="mt-5 max-w-md text-base leading-7 text-[#52756c]">{active.text}</p><button onClick={() => setView(hero === 0 ? 'citas' : hero === 1 ? 'tienda' : 'servicios')} className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[#0d5c5b] px-5 py-3 text-sm font-bold text-white transition-transform hover:-translate-y-0.5">{active.cta}<ArrowRight className="size-4" /></button></div><div className="pointer-events-none absolute -right-12 bottom-0 hidden h-full w-[44%] lg:block"><div className="absolute right-16 top-16 flex size-56 items-center justify-center rounded-full border-[22px] border-[#b9d9ca] bg-[#f1f4e9]"><PawPrint className="size-24 text-[#0d5c5b]/25" /></div><div className="absolute bottom-0 right-0 text-[190px] leading-none text-[#0d5c5b]/10">✦</div></div><div className="absolute bottom-6 right-8 flex gap-2">{slides.map((_, i) => <button key={i} onClick={() => setHero(i)} aria-label={`Slide ${i + 1}`} className={`size-2.5 rounded-full ${hero === i ? 'bg-[#0d5c5b]' : 'bg-[#a7c9ba]'}`} />)}</div></section>
-        <section className="mt-12"><SectionTitle eyebrow="Akimax por etapas" title="Una forma más inteligente de acompañar" detail="Programas creados para la vida real de cada familia." /><div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[['Cachorros', 'Rutinas, vacunas y nutrición para empezar bien.', 'bg-[#e7f1eb]'], ['Adultos', 'Prevención y energía para todos sus días.', 'bg-[#e8eef4]'], ['Seniors', 'Más confort, seguimiento y tiempo juntos.', 'bg-[#f1eee7]'], ['Familias multiespecie', 'Un mismo equipo para todas sus historias.', 'bg-[#f3e8e2]']].map(([title, text, tone]) => <button key={title} onClick={() => setView('servicios')} className={`group rounded-3xl ${tone} p-5 text-left transition-transform hover:-translate-y-1`}><span className="flex size-10 items-center justify-center rounded-xl bg-white/70 text-[#0d5c5b]"><PawPrint className="size-4" /></span><b className="mt-8 block font-serif text-xl text-[#173b3b]">{title}</b><span className="mt-2 block text-sm leading-5 text-[#66817a]">{text}</span><span className="mt-5 flex items-center gap-1 text-xs font-bold text-[#0d5c5b]">Explorar programa <ArrowRight className="size-3 transition-transform group-hover:translate-x-1" /></span></button>)}</div></section>\n    <section className="mt-12"><SectionTitle eyebrow="A tu medida" title="Servicios para cada etapa" detail="Desde la primera vacuna hasta los cuidados de todos los días." action={<button onClick={() => setView('servicios')} className="hidden items-center gap-2 text-sm font-bold text-[#0d5c5b] sm:flex">Ver todos <ArrowRight className="size-4" /></button>} /><div className="mt-6 grid gap-4 md:grid-cols-3">{services.map((service) => <button key={service.name} onClick={() => setView('citas')} className="group flex min-h-44 flex-col justify-between rounded-3xl bg-white p-6 text-left shadow-sm ring-1 ring-[#e1ebe6] transition-all hover:-translate-y-1 hover:shadow-lg"><span className="flex size-11 items-center justify-center rounded-2xl bg-[#e7f1eb] text-[#0d5c5b]"><service.icon className="size-5" /></span><span><span className="flex items-center justify-between gap-3"><b className="font-serif text-xl text-[#173b3b]">{service.name}</b><ArrowRight className="size-4 text-[#a1b5ad] transition-transform group-hover:translate-x-1" /></span><span className="mt-2 block text-sm text-[#829990]">{service.detail}</span><span className="mt-4 block text-sm font-bold text-[#d37c52]">{service.price}</span></span></button>)}</div></section>
-    <section className="mt-12 grid gap-8 lg:grid-cols-[1.5fr_1fr]"><div><SectionTitle eyebrow="Más elegidos" title="Favoritos del pet shop" action={<button onClick={() => setView('tienda')} className="flex items-center gap-2 text-sm font-bold text-[#0d5c5b]">Ver tienda <ArrowRight className="size-4" /></button>} /><div className="mt-6 grid gap-4 sm:grid-cols-3">{products.slice(0, 3).map((product) => <ProductCard key={product.id} product={product} addToCart={() => {}} compact />)}</div></div><div className="rounded-3xl bg-[#173b3b] p-7 text-[#eef6ef]"><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#b5d8bf]">Próximo turno</p><h3 className="mt-3 font-serif text-2xl font-bold">Control de Luna</h3></div><span className="flex size-12 items-center justify-center rounded-2xl bg-[#315d59]"><Dog className="size-6" /></span></div><div className="mt-8 flex items-center gap-3 border-t border-white/10 pt-5 text-sm text-[#bfd5cb]"><CalendarDays className="size-4 text-[#e1a175]" /> Miércoles, 19 de junio <span className="text-[#77988c]">·</span> 10:30 am</div><button onClick={() => setView('citas')} className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#e7f1eb] py-3 text-sm font-bold text-[#0d5c5b]">Ver detalles <ArrowRight className="size-4" /></button></div></section>
-    <ContactFooter setView={setView} />
-  </div>
+function Operations({ showToast }: { showToast: (message: string) => void }) {
+  return (
+    <div className="mx-auto max-w-[1440px] px-6 py-10 lg:px-10">
+      <OperationsCalendar />
+      <div className="mt-8 flex items-end justify-between gap-4">
+        <div>
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-[#d37c52]">Vista operativa</p>
+          <h2 className="font-serif text-3xl font-bold tracking-tight text-[#173b3b]">El equipo, en sintonía</h2>
+          <p className="mt-2 text-sm leading-6 text-[#78918a]">Gestiona la operación diaria desde un mismo lugar.</p>
+        </div>
+        <button onClick={() => showToast('Datos actualizados')} className="rounded-xl bg-[#e7f1eb] px-3 py-2 text-xs font-bold text-[#0d5c5b]">Actualizar</button>
+      </div>
+    </div>
+  )
 }
-
-function ProductCard({ product, addToCart, compact = false }: { product: Product; addToCart: () => void; compact?: boolean }) { return <div className={`group rounded-3xl bg-white p-3 shadow-sm ring-1 ring-[#e1ebe6] ${compact ? '' : 'p-4'}`}><div className={`relative flex ${compact ? 'h-32' : 'h-44'} items-center justify-center rounded-2xl ${product.tone}`}><span className="text-6xl opacity-60">{product.icon === 'bone' ? '◒' : product.icon === 'bag' ? '▰' : product.icon === 'bed' ? '◓' : product.icon === 'drop' ? '◆' : '●'}</span><span className="absolute left-3 top-3 rounded-lg bg-white/80 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#66817a]">{product.category}</span></div><div className="px-1 pt-4"><h3 className="font-serif font-bold text-[#173b3b]">{product.name}</h3><div className="mt-2 flex items-end justify-between gap-2"><span><b className="block text-base text-[#0d5c5b]">${product.price.toFixed(2)}</b><small className="text-xs text-[#8aa096]">{formatVES(product.price)}</small></span><button onClick={addToCart} aria-label={`Agregar ${product.name}`} className="flex size-9 items-center justify-center rounded-xl bg-[#e7f1eb] text-[#0d5c5b] transition-colors hover:bg-[#0d5c5b] hover:text-white"><Plus className="size-4" /></button></div></div></div> }
-
-function Shop({ products: visibleProducts, search, setSearch, category, setCategory, addToCart, setView }: { products: Product[]; search: string; setSearch: (value: string) => void; category: string; setCategory: (value: string) => void; addToCart: (product: Product) => void; setView: (view: View) => void }) { return <div className="mx-auto max-w-[1440px] px-6 py-10 lg:px-10"><SectionTitle eyebrow="Akimax pet shop" title="Todo lo que mueve sus patitas" detail="Productos seleccionados para una vida m��s sana, cómoda y feliz." action={<button onClick={() => setView('servicios')} className="flex items-center gap-2 text-sm font-bold text-[#0d5c5b]">Ver servicios <ArrowRight className="size-4" /></button>} /><div className="mt-8 flex flex-col gap-6 lg:flex-row"><aside className="h-fit shrink-0 rounded-3xl bg-white p-5 ring-1 ring-[#e1ebe6] lg:w-60"><div className="flex items-center justify-between"><b>Filtrar por</b><Filter className="size-4 text-[#829990]" /></div><div className="mt-5 flex gap-2 overflow-x-auto lg:flex-col">{['Todos', 'Alimentos', 'Accesorios', 'Cuidado'].map((item) => <button key={item} onClick={() => setCategory(item)} className={`whitespace-nowrap rounded-xl px-3 py-2 text-left text-sm ${category === item ? 'bg-[#e7f1eb] font-bold text-[#0d5c5b]' : 'text-[#78918a] hover:bg-[#f4f8f5]'}`}>{item}</button>)}</div><div className="mt-8 hidden border-t border-[#e7eee9] pt-5 lg:block"><p className="text-xs font-bold uppercase tracking-wide text-[#829990]">Stock disponible</p><div className="mt-4 flex items-center gap-2 text-sm"><span className="size-2 rounded-full bg-[#79a88e]" /> En existencia</div><div className="mt-3 flex items-center gap-2 text-sm"><span className="size-2 rounded-full bg-[#d37c52]" /> Últimas unidades</div></div></aside><div className="min-w-0 flex-1"><div className="relative mb-6"><Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#8ca59c]" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar alimento, accesorio o cuidado..." className="w-full rounded-2xl border-0 bg-white py-3 pl-11 pr-4 text-sm outline-none ring-1 ring-[#e1ebe6] placeholder:text-[#a0b4ac] focus:ring-2 focus:ring-[#9ec6b4]" /></div>{visibleProducts.length > 0 ? <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{visibleProducts.map((product) => <ProductCard key={product.id} product={product} addToCart={() => addToCart(product)} />)}</div> : <div className="rounded-3xl bg-white p-12 text-center text-[#829990]">No encontramos productos con esa búsqueda.</div>}</div></div></div> }
-
-function Appointments({ step, setStep, done, setDone, showToast }: { step: number; setStep: (step: number) => void; done: boolean; setDone: (done: boolean) => void; showToast: (message: string) => void }) { const steps = ['Mascota', 'Servicio', 'Fecha y hora', 'Confirmación']; return <div className="mx-auto max-w-[1000px] px-6 py-10 lg:px-10"><SectionTitle eyebrow="Agenda sin llamadas" title="Reserva un momento para ellos" detail="Te tomará menos de dos minutos." /><div className="mt-10 flex items-center justify-between">{steps.map((label, index) => <div key={label} className="flex items-center gap-2"><span className={`flex size-9 items-center justify-center rounded-full text-sm font-bold ${step > index + 1 || done ? 'bg-[#0d5c5b] text-white' : step === index + 1 ? 'bg-[#d37c52] text-white' : 'bg-[#e2ece7] text-[#78918a]'}`}>{step > index + 1 || done ? <Check className="size-4" /> : index + 1}</span><span className="hidden text-xs font-bold text-[#66817a] sm:block">{label}</span>{index < 3 && <span className="mx-2 hidden h-px w-8 bg-[#dce7e2] sm:block md:w-20" />}</div>)}</div><div className="mt-10 rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-[#e1ebe6] md:p-10">{done ? <div className="flex flex-col items-center py-14 text-center"><span className="flex size-16 items-center justify-center rounded-full bg-[#e3f0e5] text-[#0d5c5b]"><Check className="size-8" /></span><h3 className="mt-6 font-serif text-3xl font-bold">Cita confirmada</h3><p className="mt-3 max-w-md text-sm leading-6 text-[#78918a]">Luna tiene su control general reservado para el miércoles 19 de junio a las 10:30 am.</p><button onClick={() => { setDone(false); setStep(1) }} className="mt-8 rounded-xl bg-[#0d5c5b] px-5 py-3 text-sm font-bold text-white">Agendar otra cita</button></div> : <><div className="min-h-56">{step === 1 && <Choice title="¿A quién vamos a cuidar?" options={['Luna · Golden Retriever', 'Simón · Gato mestizo']} selected={0} />}{step === 2 && <Choice title="Elige el servicio que necesitan" options={['Consulta general · $25', 'Peluquería & spa · $18', 'Vacunación anual · $20']} selected={0} />}{step === 3 && <div><h3 className="font-serif text-2xl font-bold">Elige fecha y hora</h3><div className="mt-6 grid gap-3 sm:grid-cols-4">{['Mié 19', 'Jue 20', 'Vie 21', 'Sáb 22'].map((date, i) => <button key={date} className={`rounded-2xl border p-4 text-center ${i === 0 ? 'border-[#0d5c5b] bg-[#e7f1eb]' : 'border-[#e1ebe6] hover:bg-[#f4f8f5]'}`}><b className="block text-sm">{date}</b><small className="mt-1 block text-[#829990]">Junio</small></button>)}</div><p className="mt-6 text-sm font-bold text-[#66817a]">Horarios disponibles</p><div className="mt-3 flex flex-wrap gap-2">{['9:00 am', '10:30 am', '2:00 pm', '4:30 pm'].map((time, i) => <button key={time} className={`rounded-xl px-4 py-2 text-sm ${i === 1 ? 'bg-[#0d5c5b] font-bold text-white' : 'bg-[#f0f5f1] text-[#66817a]'}`}>{time}</button>)}</div></div>}{step === 4 && <div><h3 className="font-serif text-2xl font-bold">Revisa tu cita</h3><div className="mt-6 grid gap-3 sm:grid-cols-3">{[['Mascota', 'Luna'], ['Servicio', 'Consulta general'], ['Fecha', 'Mié 19 · 10:30 am']].map(([label, value]) => <div key={label} className="rounded-2xl bg-[#f4f8f5] p-4"><p className="text-xs text-[#829990]">{label}</p><p className="mt-2 text-sm font-bold text-[#173b3b]">{value}</p></div>)}</div></div>}</div><div className="mt-8 flex justify-between border-t border-[#e7eee9] pt-6">{step > 1 ? <button onClick={() => setStep(step - 1)} className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-[#66817a]"><ChevronLeft className="size-4" /> Atrás</button> : <span />}{step < 4 ? <button onClick={() => setStep(step + 1)} className="inline-flex items-center gap-2 rounded-xl bg-[#0d5c5b] px-5 py-3 text-sm font-bold text-white">Continuar <ChevronRight className="size-4" /></button> : <button onClick={() => { setDone(true); showToast('Cita reservada correctamente') }} className="inline-flex items-center gap-2 rounded-xl bg-[#d37c52] px-5 py-3 text-sm font-bold text-white">Confirmar cita <Check className="size-4" /></button>}</div></>}</div></div> }
-
-function Choice({ title, options, selected }: { title: string; options: string[]; selected: number }) { return <div><h3 className="font-serif text-2xl font-bold">{title}</h3><div className="mt-6 grid gap-3 sm:grid-cols-2">{options.map((option, i) => <button key={option} className={`flex items-center justify-between rounded-2xl border p-5 text-left text-sm font-bold ${i === selected ? 'border-[#0d5c5b] bg-[#e7f1eb] text-[#0d5c5b]' : 'border-[#e1ebe6] text-[#66817a] hover:bg-[#f7faf8]'}`}>{option}<span className={`flex size-5 items-center justify-center rounded-full border ${i === selected ? 'border-[#0d5c5b] bg-[#0d5c5b] text-white' : 'border-[#b7c9c0]'}`}>{i === selected && <Check className="size-3" />}</span></button>)}</div></div> }
-
-function Patients({ showToast }: { showToast: (message: string) => void }) { return <div className="mx-auto max-w-[1200px] px-6 py-10 lg:px-10"><SectionTitle eyebrow="Mi familia" title="Mis mascotas" detail="Sus historias, vacunas y próximos cuidados en un solo lugar." action={<button onClick={() => showToast('Formulario para registrar mascota abierto')} className="inline-flex items-center gap-2 rounded-xl bg-[#0d5c5b] px-4 py-3 text-sm font-bold text-white"><Plus className="size-4" /> Agregar mascota</button>} /><div className="mt-8 grid gap-5 lg:grid-cols-[1fr_1.2fr]"><div className="flex flex-col gap-4">{pets.map((pet, i) => <button key={pet.name} className={`rounded-3xl p-5 text-left ring-1 transition-all ${i === 0 ? 'bg-white ring-[#9fc9b5] shadow-md' : 'bg-white ring-[#e1ebe6]'}`}><div className="flex items-center gap-4"><span className={`flex size-14 items-center justify-center rounded-2xl ${pet.color} font-serif font-bold text-[#477267]`}>{pet.initials}</span><span><b className="font-serif text-xl">{pet.name}</b><span className="mt-1 block text-sm text-[#829990]">{pet.species}</span></span><ChevronRight className="ml-auto size-5 text-[#a0b5ac]" /></div><p className="mt-5 border-t border-[#edf1ee] pt-4 text-xs text-[#829990]">{pet.last}</p></button>)}</div><div className="rounded-3xl bg-white p-6 ring-1 ring-[#e1ebe6] md:p-8"><div className="flex items-start justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#d37c52]">Historia clínica</p><h3 className="mt-2 font-serif text-3xl font-bold">Luna</h3><p className="mt-1 text-sm text-[#829990]">Golden Retriever · 4 años · 18.5 kg</p></div><span className="flex size-12 items-center justify-center rounded-2xl bg-[#e7f1eb] text-[#0d5c5b]"><HeartPulse className="size-6" /></span></div><div className="mt-8 flex flex-col gap-7 border-l border-[#dce7e2] pl-6">{[['12 Jun 2024', 'Control anual', 'Todo en orden. Peso saludable y energía excelente.'], ['03 Abr 2024', 'Vacuna séxtuple', 'Aplicación registrada. Próxima dosis en abril 2025.'], ['18 Ene 2024', 'Desparasitación', 'Tratamiento oral administrado en consulta.']].map(([date, title, detail], i) => <div key={title} className="relative"><span className={`absolute -left-[31px] top-1 size-2.5 rounded-full ring-4 ring-white ${i === 0 ? 'bg-[#d37c52]' : 'bg-[#8db69e]'}`} /><p className="text-xs font-bold text-[#d37c52]">{date}</p><h4 className="mt-1 text-sm font-bold">{title}</h4><p className="mt-1 text-sm leading-6 text-[#829990]">{detail}</p></div>)}</div></div></div></div> }
-
-function Operations({ role, setRole, showToast }: { role: Role; setRole: (role: Role) => void; showToast: (message: string) => void }) { return <div className="mx-auto max-w-[1440px] px-6 py-10 lg:px-10"><div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><MetricCard icon={CircleDollarSign} label="Tasa del día" value={`Bs. ${rate.toFixed(2)}`} note="Actualizada hoy" /><MetricCard icon={CalendarDays} label="Citas próximas" value="08" note="+12% esta semana" /><MetricCard icon={ShoppingBag} label="Ventas del mes" value="$4,280" note="+18.4% vs. mayo" /><MetricCard icon={Users} label="Nuevos clientes" value="24" note="En los últimos 30 días" /></div><OperationsCalendar /><SectionTitle eyebrow="Vista operativa" title="El equipo, en sintonía" detail="Gestiona la operación diaria de akimax desde un mismo lugar." action={<div className="flex flex-wrap items-center gap-2"><div className="flex rounded-xl bg-white p-1 ring-1 ring-[#e1ebe6]">{(['Administrador', 'Veterinario', 'Caja'] as Role[]).map((item) => <button key={item} onClick={() => setRole(item)} className={`rounded-lg px-3 py-2 text-xs font-bold ${role === item ? 'bg-[#0d5c5b] text-white' : 'text-[#78918a]'}`}>{item}</button>)}</div></div>} /><div className="mt-8 grid gap-5 lg:grid-cols-3">{role === 'Administrador' && <><OperationCard icon={LayoutDashboard} title="Resumen del día" value="Bs. 18,490" detail="Ventas procesadas" /><OperationCard icon={ClipboardList} title="Citas en agenda" value="08 activas" detail="3 requieren atención" /><OperationCard icon={Package} title="Alertas de stock" value="04 productos" detail="Reponer esta semana" /></>}{role === 'Veterinario' && <><OperationCard icon={Stethoscope} title="Paciente en consulta" value="Luna · Sala 2" detail="Control general" /><OperationCard icon={ClipboardList} title="Servicios cargados" value="12 hoy" detail="+3 vs. ayer" /><OperationCard icon={Clock3} title="Próxima cita" value="11:15 am" detail="Simón · Vacunación" /></>}{role === 'Caja' && <><OperationCard icon={CreditCard} title="Ventas de hoy" value="$842.50" detail="Bs. 110,747.95" /><OperationCard icon={CircleDollarSign} title="Caja abierta" value="Bs. 6,250" detail="Desde las 8:00 am" /><OperationCard icon={ClipboardList} title="Órdenes pendientes" value="03" detail="Enviadas por veterinaria" /></>}</div><div className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_1fr]"><div className="rounded-3xl bg-white p-6 ring-1 ring-[#e1ebe6]"><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#d37c52]">Actividad reciente</p><h3 className="mt-2 font-serif text-2xl font-bold">{role === 'Caja' ? 'Órdenes para facturar' : role === 'Veterinario' ? 'Agenda de atención' : 'Alertas de stock bajo'}</h3></div><button onClick={() => showToast('Datos actualizados')} className="rounded-xl bg-[#e7f1eb] px-3 py-2 text-xs font-bold text-[#0d5c5b]">Actualizar</button></div><div className="mt-6 flex flex-col gap-4">{(role === 'Caja' ? ['Orden #1082 · Consulta Luna', 'Orden #1081 · Peluquería Bruno', 'Orden #1079 · Alimento VitalCan'] : role === 'Veterinario' ? ['10:30 · Luna · Consulta general', '11:15 · Simón · Vacunación', '12:00 · Nina · Control digestivo'] : ['Pipeta Antipulgas · 4 unidades', 'Alimento VitalCan · 12 unidades', 'Snacks Dentales · 20 unidades']).map((item, i) => <div key={item} className="flex items-center gap-4 rounded-2xl bg-[#f6f9f7] p-4"><span className="flex size-9 items-center justify-center rounded-xl bg-white text-[#0d5c5b]">{role === 'Caja' ? <CreditCard className="size-4" /> : role === 'Veterinario' ? <Clock3 className="size-4" /> : <Package className="size-4" />}</span><span className="flex-1 text-sm font-bold">{item}<small className="mt-1 block font-normal text-[#829990]">{i === 0 ? 'Hace 8 min' : i === 1 ? 'Hace 24 min' : 'Hace 41 min'}</small></span><ArrowRight className="size-4 text-[#a1b5ad]" /></div>)}</div></div><div className="rounded-3xl bg-[#173b3b] p-6 text-[#eef6ef]"><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#b5d8bf]">Acceso rápido</p><h3 className="mt-3 font-serif text-2xl font-bold">¿Qué necesitas hacer?</h3><div className="mt-6 flex flex-col gap-3">{(role === 'Administrador' ? ['Crear usuario', 'Actualizar catálogo', 'Ver configuración'] : role === 'Veterinario' ? ['Abrir expediente', 'Cargar insumos', 'Ver historias'] : ['Nueva venta', 'Abrir caja', 'Cierre del día']).map((item) => <button key={item} onClick={() => showToast(`${item}: módulo disponible en el prototipo`)} className="flex items-center justify-between rounded-xl bg-white/10 px-4 py-3 text-left text-sm font-bold transition-colors hover:bg-white/15">{item}<ArrowRight className="size-4 text-[#d9a47f]" /></button>)}</div></div></div></div> }
-
-function OperationCard({ icon: Icon, title, value, detail }: { icon: React.ElementType; title: string; value: string; detail: string }) { return <div className="rounded-3xl bg-white p-6 ring-1 ring-[#e1ebe6]"><span className="flex size-11 items-center justify-center rounded-2xl bg-[#e7f1eb] text-[#0d5c5b]"><Icon className="size-5" /></span><p className="mt-5 text-sm text-[#829990]">{title}</p><p className="mt-1 font-serif text-2xl font-bold">{value}</p><p className="mt-2 text-xs text-[#d37c52]">{detail}</p></div> }
-
-function CartDrawer({ cart, total, changeQuantity, onClose, checkout }: { cart: CartItem[]; total: number; changeQuantity: (id: number, amount: number) => void; onClose: () => void; checkout: () => void }) { return <div className="fixed inset-0 z-50"><button className="absolute inset-0 bg-[#173b3b]/30 backdrop-blur-sm" aria-label="Cerrar carrito" onClick={onClose} /><aside className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-[#f7f9f7] p-6 shadow-2xl"><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#d37c52]">Tu selección</p><h2 className="mt-1 font-serif text-3xl font-bold">Carrito</h2></div><button onClick={onClose} className="rounded-xl p-2 text-[#66817a] hover:bg-white"><X className="size-5" /></button></div><div className="mt-8 flex flex-1 flex-col gap-4 overflow-y-auto">{cart.length === 0 ? <div className="m-auto text-center"><ShoppingBag className="mx-auto size-10 text-[#abc0b5]" /><p className="mt-4 font-serif text-xl font-bold">Tu carrito está vacío</p><p className="mt-2 text-sm text-[#829990]">Agrega algo bonito para ellos.</p></div> : cart.map((item) => <div key={item.id} className="flex gap-3 rounded-2xl bg-white p-3 ring-1 ring-[#e1ebe6]"><div className={`flex size-16 items-center justify-center rounded-xl ${item.tone} text-2xl`}>●</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{item.name}</p><p className="mt-1 text-sm text-[#0d5c5b]">${item.price.toFixed(2)} · {formatVES(item.price)}</p><div className="mt-2 flex items-center gap-2"><button onClick={() => changeQuantity(item.id, -1)} className="flex size-6 items-center justify-center rounded-lg bg-[#edf3ef]"><Minus className="size-3" /></button><span className="w-4 text-center text-xs font-bold">{item.quantity}</span><button onClick={() => changeQuantity(item.id, 1)} className="flex size-6 items-center justify-center rounded-lg bg-[#edf3ef]"><Plus className="size-3" /></button></div></div><button onClick={() => changeQuantity(item.id, -item.quantity)} aria-label={`Eliminar ${item.name}`} className="self-start p-1 text-[#a5b7ae]"><Trash2 className="size-4" /></button></div>)}</div><div className="border-t border-[#dce7e2] pt-5"><div className="flex items-end justify-between"><span className="text-sm text-[#829990]">Total</span><span className="text-right"><b className="block font-serif text-2xl">${total.toFixed(2)}</b><small className="text-xs text-[#d37c52]">{formatVES(total)}</small></span></div><button disabled={cart.length === 0} onClick={checkout} className="mt-5 w-full rounded-xl bg-[#0d5c5b] py-3.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">Enviar a caja</button></div></aside></div> }

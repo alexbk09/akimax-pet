@@ -1,33 +1,66 @@
-# akimax-pet
+# akimax pet — Clínica veterinaria & pet shop
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+Sistema completo con Next.js 16 + React 19 + Supabase + Tailwind 4, arquitectura escalable con **services** como única capa de acceso a datos.
 
-## Built with v0
+## Arquitectura
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
-
-[Continue working on v0 →](https://v0.app/chat/projects/prj_uDR9izbtAA9IbeRH3tNEjqybySN7)
-
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
+```
+app/                      → Página principal (AppShell)
+components/
+  pages/                  → Módulos (admin, caja, clientes, operaciones, pacientes, reportes, servicios, tienda)
+  layout/                 → Shell y navegación con permisos
+  cart/                   → Carrito global con persistencia
+  cards/ tables/ ui/      → Componentes atómicos (skeleton, paginator, role-guard, estados)
+lib/
+  types.ts                → Tipos del dominio organizados por módulo
+  services/               → ÚNICA capa de acceso a BD (nunca supabase.from() en componentes)
+    auth.ts               → Autenticación, roles y usuarios
+    catalog.ts            → Productos y servicios con paginación
+    customers.ts          → Clientes, mascotas e historias clínicas
+    appointments.ts       → Citas
+    sales.ts              → Ventas, caja e inventario
+    reports.ts            → KPIs y reportes
+    exchange-rate.ts      → Tasa de cambio (dolarapi)
+  hooks/                  → useAuth, useCart, useExchangeRate, useInfiniteScroll, usePagination
+  supabase/client.ts      → Singleton de Supabase
+supabase/
+  migrations/             → 0001-0006 esquema completo + RLS + triggers
+  seed.sql                → Roles y permisos
+  seed-catalog.sql        → Categorías, productos, servicios
+  seed-data.sql           → Clientes, mascotas, citas, ventas demo
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Configuración inicial
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Crea un proyecto en [Supabase](https://supabase.com)
+2. Copia `.env.local.example` a `.env.local` y completa:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=https://TU_PROYECTO.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=TU_ANON_KEY
+   ```
+3. Ejecuta las migraciones en orden (`0001` → `0006`) en el SQL Editor
+4. Ejecuta los seeders (`seed.sql`, `seed-catalog.sql`, `seed-data.sql`)
 
-## Learn More
+## Reglas de oro
 
-To learn more, take a look at the following resources:
+- **No direct calls**: Prohibido `supabase.from()` en componentes. Todo pasa por `lib/services/`
+- **Componentización**: UI independiente de la lógica de Supabase (diseño atómico)
+- **Permisos**: `RoleGuard` protege cada módulo y `MainNav` oculta enlaces sin permiso
+- **Loading**: Cada tabla/lista usa skeleton; catálogos usan scroll infinito
+- **Tasa de cambio**: `useExchangeRate` consulta [dolarapi](https://dolarapi.com) con caché de 30 min y fallback a BD/localStorage
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+## Roles del sistema
+
+| Rol | Accesos |
+|-----|---------|
+| Administrador | Todos los módulos + gestión de usuarios/roles |
+| Veterinario | Agenda, pacientes, historias clínicas, reportes |
+| Caja | Ventas, facturación, clientes, catálogo |
+| Cliente | Panel personal, citas, mascotas |
+
+## Scripts
+
+```bash
+pnpm dev        # Desarrollo
+pnpm build      # Producción
+pnpm start      # Servir producción
