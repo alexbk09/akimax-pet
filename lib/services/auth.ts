@@ -1,17 +1,44 @@
 import { supabase } from '@/lib/supabase/client'
 import type { Permission, Profile, Role, RoleName } from '@/lib/types'
 
-/** Obtiene el perfil del usuario autenticado actualmente. */
+/**
+ * Obtiene el perfil del usuario autenticado.
+ * Si el perfil no existe (trigger no aplicado a usuarios previos),
+ * lo crea automáticamente desde los metadatos de auth.
+ */
 export async function getCurrentProfile(): Promise<Profile | null> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
+
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .maybeSingle()
-  if (error || !data) return null
-  return data as Profile
+
+  if (data) return data as Profile
+
+  // El perfil no existe → intentar crearlo automáticamente
+  if (!error) {
+    const fullName = (user.user_metadata?.full_name as string) ?? user.email?.split('@')[0] ?? 'Usuario'
+    const phone = (user.user_metadata?.phone as string) ?? null
+    const profile: Partial<Profile> = {
+      id: user.id,
+      full_name: fullName,
+      email: user.email ?? '',
+      phone,
+      role: 'Cliente',
+      active: true,
+    }
+    const { data: created, error: insertError } = await supabase
+      .from('profiles')
+      .upsert(profile, { onConflict: 'id' })
+      .select()
+      .single()
+    if (!insertError && created) return created as Profile
+  }
+
+  return null
 }
 
 /** Inicia sesión con email y contraseña. */
@@ -35,6 +62,24 @@ export async function signUp(email: string, password: string, fullName: string, 
 /** Cierra la sesión del usuario actual. */
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut()
+}
+
+/** Actualiza el perfil del usuario autenticado (nombre y teléfono). */
+export async function updateProfile(patch: { full_name?: string; phone?: string | null }): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Usuario no autenticado')
+
+  const { error } = await supabase.from('profiles').update(patch).eq('id', user.id)
+  if (error) throw error
+
+  // Mantener el registro de cliente vinculado sincronizado
+  await supabase.from('customers').update({ name: patch.full_name, phone: patch.phone ?? null }).eq('user_id', user.id)
+}
+
+/** Cambia la contraseña del usuario autenticado. */
+export async function changePassword(newPassword: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password: newPassword })
+  if (error) throw error
 }
 
 /** Devuelve todos los roles con sus permisos (solo administrador). */

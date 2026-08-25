@@ -10,6 +10,7 @@ import CashPage from '@/components/pages/cash/cash-page'
 import RolesPage from '@/components/pages/admin/roles-page'
 import ReportsPage from '@/components/pages/reports/reports-page'
 import ClientPage from '@/components/pages/client/client-page'
+import { ProfilePage } from '@/components/pages/client/profile-page'
 import { LandingPage } from '@/components/pages/landing/landing-page'
 import { DashboardView } from '@/components/pages/landing/dashboard-view'
 import { LoginPage } from '@/components/pages/auth/login-page'
@@ -52,7 +53,7 @@ export default function AppShell() {
       <MainNav view={view} setView={setView} cartCount={count} openCart={() => setCartOpen(true)} showToast={showToast} />
 
       <main className="flex-1">
-        {view === 'login' && <LoginPage setView={setView} />}
+        {view === 'login' && <LoginPage setView={setView} showToast={showToast} />}
         {view === 'registro' && <RegisterPage setView={setView} />}
         {view === 'contacto' && <ContactPage setView={setView} />}
 
@@ -61,7 +62,8 @@ export default function AppShell() {
         {view === 'servicios' && <ServicesPage setView={setView} />}
         {view === 'citas' && <RoleGuard permission="appointments:view" onAuthRequired={requireLogin}><Appointments showToast={showToast} /></RoleGuard>}
         {view === 'pacientes' && <RoleGuard permission="patients:view" onAuthRequired={requireLogin}><PatientsPage showToast={showToast} /></RoleGuard>}
-        {view === 'cliente' && <RoleGuard permission="dashboard:view" onAuthRequired={requireLogin}><ClientPage setView={setView} /></RoleGuard>}
+        {view === 'cliente' && <RoleGuard permission="dashboard:view" onAuthRequired={requireLogin}><ClientPage setView={setView} showToast={showToast} /></RoleGuard>}
+        {view === 'perfil' && <RoleGuard permission="dashboard:view" onAuthRequired={requireLogin}><ProfilePage showToast={showToast} /></RoleGuard>}
         {view === 'operaciones' && <RoleGuard permission="dashboard:view" onAuthRequired={requireLogin}><Operations showToast={showToast} /></RoleGuard>}
         {view === 'caja' && <RoleGuard permission="cash:view" onAuthRequired={requireLogin}><CashPage showToast={showToast} /></RoleGuard>}
         {view === 'administracion' && <RoleGuard permission="catalog:manage" onAuthRequired={requireLogin}><AdminModule showToast={showToast} /></RoleGuard>}

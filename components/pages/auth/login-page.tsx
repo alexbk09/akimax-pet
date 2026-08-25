@@ -3,9 +3,9 @@
 import { useState } from 'react'
 import { ArrowRight, Loader2, Lock, Mail, PawPrint } from 'lucide-react'
 import { signIn } from '@/lib/services/auth'
-import type { SetView } from '@/lib/types'
+import type { SetView, Toast } from '@/lib/types'
 
-export function LoginPage({ setView }: { setView: SetView }) {
+export function LoginPage({ setView, showToast }: { setView: SetView; showToast: Toast }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -17,6 +17,9 @@ export function LoginPage({ setView }: { setView: SetView }) {
     setLoading(true)
     try {
       await signIn(email.trim(), password)
+      showToast('¡Sesión iniciada correctamente!')
+      // El hook useAuth escucha onAuthStateChange y actualiza el estado.
+      // Redirigir a inicio: allí se muestra el dashboard si la sesión persiste.
       setView('inicio')
     } catch {
       setError('Credenciales incorrectas. Revisa tu correo y contraseña.')

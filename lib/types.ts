@@ -12,6 +12,7 @@ export type View =
   | 'citas'
   | 'pacientes'
   | 'cliente'
+  | 'perfil'
   | 'operaciones'
   | 'administracion'
   | 'caja'
@@ -128,6 +129,7 @@ export interface CartItem {
 // ---------- Clientes y pacientes ----------
 export interface Customer {
   id: number
+  user_id?: string | null
   name: string
   email?: string | null
   phone?: string | null
