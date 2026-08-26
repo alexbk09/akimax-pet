@@ -7,7 +7,8 @@ import type { Toast } from '@/lib/types'
 const initialRoles = [
   { id: 1, name: 'Administrador', description: 'Acceso completo al sistema.', users: 1, permissions: ['Dashboard', 'Caja', 'Catálogo', 'Usuarios'] },
   { id: 2, name: 'Veterinario', description: 'Agenda, pacientes e historias clínicas.', users: 3, permissions: ['Agenda', 'Pacientes', 'Historias'] },
-  { id: 3, name: 'Caja', description: 'Ventas, caja y facturación.', users: 2, permissions: ['Caja', 'Ventas', 'Clientes'] },
+  { id: 3, name: 'Peluquero', description: 'Agenda y servicios de estética y peluquería.', users: 0, permissions: ['Agenda', 'Pacientes'] },
+  { id: 4, name: 'Caja', description: 'Ventas, caja y facturación.', users: 2, permissions: ['Caja', 'Ventas', 'Clientes'] },
 ]
 
 export default function RolesPage({ showToast }: { showToast: Toast }) {

@@ -126,6 +126,7 @@ export async function assignRole(userId: string, role: RoleName): Promise<void> 
 const DEFAULT_PERMISSIONS: Record<RoleName, Permission[]> = {
   Administrador: ['dashboard:view', 'catalog:view', 'catalog:manage', 'appointments:view', 'appointments:manage', 'patients:view', 'patients:manage', 'cash:view', 'cash:manage', 'sales:view', 'sales:manage', 'customers:view', 'customers:manage', 'users:manage', 'roles:manage', 'reports:view', 'inventory:manage'],
   Veterinario: ['dashboard:view', 'appointments:view', 'appointments:manage', 'patients:view', 'patients:manage', 'catalog:view', 'reports:view'],
+  Peluquero: ['dashboard:view', 'appointments:view', 'appointments:manage', 'patients:view', 'catalog:view'],
   Caja: ['dashboard:view', 'cash:view', 'cash:manage', 'sales:view', 'sales:manage', 'customers:view', 'customers:manage', 'catalog:view', 'reports:view'],
   Cliente: ['dashboard:view', 'appointments:view', 'patients:view'],
 }

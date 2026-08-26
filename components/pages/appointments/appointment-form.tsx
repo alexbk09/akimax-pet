@@ -1,12 +1,23 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { CalendarDays, Clock3, Loader2, Stethoscope } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { CalendarDays, Clock3, Loader2, Scissors, Search, Stethoscope } from 'lucide-react'
 import type { Appointment, Pet, Service, Toast } from '@/lib/types'
 import { getServices } from '@/lib/services/catalog'
 import { getAvailableSlots, getProfessionals, type TimeSlot } from '@/lib/services/availability'
 import { createAppointment } from '@/lib/services/appointments'
 import { getMyPets } from '@/lib/services/client-area'
+
+interface ProfessionalOption {
+  id: string
+  full_name: string
+  role: string
+}
+
+const ROLE_LABEL: Record<string, string> = {
+  Veterinario: 'Veterinario/a',
+  Peluquero: 'Peluquero/a',
+}
 
 interface AppointmentFormProps {
   customerId: number
@@ -23,7 +34,7 @@ interface AppointmentFormProps {
 export default function AppointmentForm({ customerId, showToast, onCreated }: AppointmentFormProps) {
   const [pets, setPets] = useState<Pet[]>([])
   const [services, setServices] = useState<Service[]>([])
-  const [professionals, setProfessionals] = useState<{ id: string; full_name: string }[]>([])
+  const [professionals, setProfessionals] = useState<ProfessionalOption[]>([])
   const [selectedPet, setSelectedPet] = useState<number | ''>('')
   const [selectedService, setSelectedService] = useState<number | ''>('')
   const [selectedProfessional, setSelectedProfessional] = useState<string>('')
@@ -35,20 +46,36 @@ export default function AppointmentForm({ customerId, showToast, onCreated }: Ap
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [serviceSearch, setServiceSearch] = useState('')
+  const [serviceDropdownOpen, setServiceDropdownOpen] = useState(false)
 
-  // Cargar datos iniciales (mascotas, servicios, profesionales)
+  // Servicios filtrados por el buscador
+  const filteredServices = useMemo(() => {
+    const term = serviceSearch.trim().toLowerCase()
+    if (!term) return services
+    return services.filter((service) =>
+      service.name.toLowerCase().includes(term) ||
+      service.description.toLowerCase().includes(term) ||
+      service.area.toLowerCase().includes(term)
+    )
+  }, [services, serviceSearch])
+
+  // Servicio seleccionado (para mostrar duración y área)
+  const selectedServiceData = useMemo(
+    () => services.find((item) => item.id === selectedService) ?? null,
+    [services, selectedService]
+  )
+
+  // Cargar datos iniciales (mascotas y servicios)
   useEffect(() => {
     void (async () => {
       try {
-        const [petsData, servicesData, professionalsData] = await Promise.all([
+        const [petsData, servicesData] = await Promise.all([
           getMyPets(customerId),
           getServices({ pageSize: 100 }),
-          getProfessionals(),
         ])
         setPets(petsData)
         setServices(servicesData.data)
-        setProfessionals(professionalsData)
-        if (servicesData.data.length > 0) setSelectedService(servicesData.data[0].id)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'No se pudieron cargar los datos')
       } finally {
@@ -56,6 +83,21 @@ export default function AppointmentForm({ customerId, showToast, onCreated }: Ap
       }
     })()
   }, [customerId])
+
+  // Cargar profesionales según el área del servicio seleccionado
+  useEffect(() => {
+    if (!selectedServiceData) {
+      setProfessionals([])
+      setSelectedProfessional('')
+      return
+    }
+    setSelectedProfessional('')
+    setSelectedSlot('')
+    setSlots([])
+    void getProfessionals(selectedServiceData.area)
+      .then(setProfessionals)
+      .catch(() => setProfessionals([]))
+  }, [selectedServiceData])
 
   // Cargar slots cuando cambian profesional, fecha o servicio
   useEffect(() => {
@@ -111,12 +153,32 @@ export default function AppointmentForm({ customerId, showToast, onCreated }: Ap
     }
   }
 
+  /** Selecciona un servicio y limpia profesional/fecha/hora. */
+  function handleSelectService(serviceId: number) {
+    setSelectedService(serviceId)
+    setServiceDropdownOpen(false)
+    setServiceSearch('')
+    setSelectedProfessional('')
+    setDate('')
+    setSelectedSlot('')
+    setSlots([])
+  }
+
   /** Formatea "HH:MM" a formato amigable (ej. 08:00 AM). */
   function formatSlot(time: string): string {
     const [hours, minutes] = time.split(':').map(Number)
     const suffix = hours >= 12 ? 'PM' : 'AM'
     const displayHours = hours % 12 === 0 ? 12 : hours % 12
     return `${displayHours}:${String(minutes).padStart(2, '0')} ${suffix}`
+  }
+
+  /** Formatea minutos a "Xh Ymin" o "Xmin". */
+  function formatDuration(minutes?: number): string {
+    if (!minutes || minutes <= 0) return 'Duración variable'
+    if (minutes < 60) return `${minutes} min`
+    const hours = Math.floor(minutes / 60)
+    const rest = minutes % 60
+    return rest > 0 ? `${hours}h ${rest}min` : `${hours}h`
   }
 
   if (loadingInitial) {
@@ -151,43 +213,103 @@ export default function AppointmentForm({ customerId, showToast, onCreated }: Ap
           </select>
         </label>
 
-        <label className="block">
+        <div className="block">
           <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#5f7a71]">Servicio *</span>
-          <select value={selectedService} onChange={(event) => setSelectedService(event.target.value === '' ? '' : Number(event.target.value))} className="w-full rounded-xl border-0 bg-white px-4 py-3 text-sm outline-none ring-1 ring-[#e1ebe6] focus:ring-2 focus:ring-[#9ec6b0]">
-            <option value="">Selecciona el servicio...</option>
-            {services.map((service) => (
-              <option key={service.id} value={service.id}>{service.name} · {service.duration}</option>
-            ))}
-          </select>
-        </label>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#8ca59c]" />
+            <input
+              type="text"
+              value={serviceSearch}
+              onChange={(event) => { setServiceSearch(event.target.value); setServiceDropdownOpen(true) }}
+              onFocus={() => setServiceDropdownOpen(true)}
+              onBlur={() => setTimeout(() => setServiceDropdownOpen(false), 150)}
+              placeholder="Busca un servicio (baño, consulta, vacuna...)"
+              className="w-full rounded-xl border-0 bg-white py-3 pl-11 pr-4 text-sm outline-none ring-1 ring-[#e1ebe6] placeholder:text-[#a0b4ac] focus:ring-2 focus:ring-[#9ec6b0]"
+            />
+            {serviceDropdownOpen && (
+              <div className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-[#e1ebe6] bg-white p-1.5 shadow-lg">
+                {filteredServices.length === 0 && (
+                  <p className="px-3 py-2 text-sm text-[#829990]">No se encontraron servicios.</p>
+                )}
+                {filteredServices.map((service) => (
+                  <button
+                    key={service.id}
+                    type="button"
+                    onMouseDown={() => handleSelectService(service.id)}
+                    className={`flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${selectedService === service.id ? 'bg-[#e7f1eb]' : 'hover:bg-[#f4f8f5]'}`}
+                  >
+                    <span className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg ${service.area === 'Veterinaria' ? 'bg-[#e7f1eb] text-[#0d5c5b]' : 'bg-[#f2ede5] text-[#b0813f]'}`}>
+                      {service.area === 'Veterinaria' ? <Stethoscope className="size-4" /> : <Scissors className="size-4" />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className={`block truncate text-sm font-bold ${selectedService === service.id ? 'text-[#0d5c5b]' : 'text-[#173b3b]'}`}>
+                        {service.name}
+                        {selectedService === service.id && <span className="ml-2 text-[10px] uppercase tracking-wide text-[#0d5c5b]">✓ Seleccionado</span>}
+                      </span>
+                      <span className="block truncate text-xs text-[#78918a]">
+                        {service.area} · {formatDuration(service.duration_minutes)}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {selectedServiceData && (
+            <div className={`mt-2 flex items-start gap-3 rounded-xl px-4 py-3 ${selectedServiceData.area === 'Veterinaria' ? 'bg-[#e7f1eb]' : 'bg-[#f2ede5]'}`}>
+              {selectedServiceData.area === 'Veterinaria'
+                ? <Stethoscope className="mt-0.5 size-4 shrink-0 text-[#0d5c5b]" />
+                : <Scissors className="mt-0.5 size-4 shrink-0 text-[#b0813f]" />}
+              <div>
+                <p className="text-sm font-bold text-[#173b3b]">{selectedServiceData.name}</p>
+                <p className="text-xs text-[#78918a]">{selectedServiceData.area}</p>
+              </div>
+              <span className="ml-auto shrink-0 rounded-lg bg-white/70 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#0d5c5b]">
+                ⏱ {formatDuration(selectedServiceData.duration_minutes)}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
-      <label className="block">
-        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#5f7a71]">Profesional *</span>
-        <div className="flex flex-wrap gap-2">
-          {professionals.length === 0 && (
-            <p className="text-sm text-[#829990]">No hay veterinarios registrados aún.</p>
+      {selectedServiceData && (
+        <div className="block">
+          <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#5f7a71]">
+            ¿Quién lo atenderá? * <span className="normal-case text-[#829990]">({selectedServiceData.area})</span>
+          </span>
+          {professionals.length === 0 ? (
+            <p className="rounded-xl bg-white px-4 py-4 text-sm text-[#829990] ring-1 ring-[#e1ebe6]">
+              No hay {selectedServiceData.area === 'Veterinaria' ? 'veterinarios' : 'peluqueros'} registrados. Contacta al equipo por WhatsApp.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {professionals.map((prof) => (
+                <button
+                  key={prof.id}
+                  type="button"
+                  onClick={() => { setSelectedProfessional(prof.id); setSelectedSlot(''); setSlots([]) }}
+                  className={`rounded-xl px-4 py-2.5 text-sm font-bold transition-colors ${selectedProfessional === prof.id ? 'bg-[#0d5c5b] text-white' : 'bg-white text-[#5f7a71] ring-1 ring-[#e1ebe6] hover:ring-[#9ec6b0]'}`}
+                >
+                  {prof.full_name}
+                  <span className={`ml-1.5 text-[10px] font-semibold uppercase tracking-wide ${selectedProfessional === prof.id ? 'text-white/70' : 'text-[#829990]'}`}>
+                    {ROLE_LABEL[prof.role] ?? ''}
+                  </span>
+                </button>
+              ))}
+            </div>
           )}
-          {professionals.map((prof) => (
-            <button
-              key={prof.id}
-              type="button"
-              onClick={() => { setSelectedProfessional(prof.id); setSelectedSlot(''); setSlots([]) }}
-              className={`rounded-xl px-4 py-2.5 text-sm font-bold transition-colors ${selectedProfessional === prof.id ? 'bg-[#0d5c5b] text-white' : 'bg-white text-[#5f7a71] ring-1 ring-[#e1ebe6] hover:ring-[#9ec6b0]'}`}
-            >
-              {prof.full_name}
-            </button>
-          ))}
         </div>
-      </label>
+      )}
 
-      <label className="block">
-        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#5f7a71]">Fecha *</span>
-        <div className="relative max-w-md">
-          <CalendarDays className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#8ca59c]" />
-          <input type="date" min={minDate} value={date} onChange={(event) => { setDate(event.target.value); setSelectedSlot('') }} className="w-full rounded-xl border-0 bg-white py-3 pl-11 pr-4 text-sm outline-none ring-1 ring-[#e1ebe6] focus:ring-2 focus:ring-[#9ec6b0]" />
-        </div>
-      </label>
+      {selectedProfessional && (
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#5f7a71]">Fecha *</span>
+          <div className="relative max-w-md">
+            <CalendarDays className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#8ca59c]" />
+            <input type="date" min={minDate} value={date} onChange={(event) => { setDate(event.target.value); setSelectedSlot('') }} className="w-full rounded-xl border-0 bg-white py-3 pl-11 pr-4 text-sm outline-none ring-1 ring-[#e1ebe6] focus:ring-2 focus:ring-[#9ec6b0]" />
+          </div>
+        </label>
+      )}
 
       {selectedProfessional && date && selectedService && (
         <div>

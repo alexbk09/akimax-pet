@@ -9,13 +9,18 @@ import { PageLoader } from '@/components/ui'
 
 const DAYS = Array.from({ length: 7 }, (_, index) => index)
 
+const ROLE_LABEL: Record<string, string> = {
+  Veterinario: 'Veterinario/a',
+  Peluquero: 'Peluquero/a',
+}
+
 /**
  * Gestor de horarios de profesionales (vet/admin).
  * Permite configurar día a día la hora de entrada y salida
  * de cada veterinario para calcular la disponibilidad de citas.
  */
 export default function ScheduleManager({ showToast }: { showToast: Toast }) {
-  const [professionals, setProfessionals] = useState<{ id: string; full_name: string }[]>([])
+  const [professionals, setProfessionals] = useState<{ id: string; full_name: string; role: string }[]>([])
   const [schedules, setSchedules] = useState<ProfessionalSchedule[]>([])
   const [selectedProfessional, setSelectedProfessional] = useState<string>('')
   const [drafts, setDrafts] = useState<Record<string, { start_time: string; end_time: string; is_working: boolean }>>({})
@@ -94,7 +99,7 @@ export default function ScheduleManager({ showToast }: { showToast: Toast }) {
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#d37c52]">Agenda</p>
           <h3 className="mt-1 font-serif text-2xl font-bold text-[#173b3b]">Horarios de profesionales</h3>
-          <p className="mt-1 text-sm text-[#78918a]">Define las horas de atención de cada veterinario. Las citas se calculan según estos rangos.</p>
+          <p className="mt-1 text-sm text-[#78918a]">Define las horas de atención de cada veterinario y peluquero. Las citas se calculan según estos rangos.</p>
         </div>
       </div>
 
@@ -107,10 +112,13 @@ export default function ScheduleManager({ showToast }: { showToast: Toast }) {
             className={`rounded-xl px-4 py-3 text-left text-sm font-bold transition-colors ${selectedProfessional === prof.id ? 'bg-[#0d5c5b] text-white' : 'bg-[#f4f8f5] text-[#5f7a71] ring-1 ring-[#e1ebe6] hover:ring-[#9ec6b0]'}`}
           >
             {prof.full_name}
+            <span className={`ml-1.5 text-[10px] font-semibold uppercase tracking-wide ${selectedProfessional === prof.id ? 'text-white/70' : 'text-[#829990]'}`}>
+              {ROLE_LABEL[prof.role] ?? ''}
+            </span>
           </button>
         ))}
         {professionals.length === 0 && (
-          <p className="text-sm text-[#829990]">No hay veterinarios registrados aún. Asigna el rol Veterinario a un usuario para configurar su horario.</p>
+          <p className="text-sm text-[#829990]">No hay veterinarios o peluqueros registrados aún. Asigna el rol Veterinario o Peluquero a un usuario para configurar su horario.</p>
         )}
       </div>
 

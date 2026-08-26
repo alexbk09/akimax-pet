@@ -26,7 +26,7 @@ export type SetView = (view: View) => void
 export type Toast = (message: string) => void
 
 // ---------- Autenticación y roles ----------
-export type RoleName = 'Administrador' | 'Veterinario' | 'Caja' | 'Cliente'
+export type RoleName = 'Administrador' | 'Veterinario' | 'Peluquero' | 'Caja' | 'Cliente'
 export type Permission =
   | 'dashboard:view'
   | 'catalog:view'

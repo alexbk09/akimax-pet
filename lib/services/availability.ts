@@ -59,9 +59,14 @@ export async function getAvailableSlots(
 
   const schedule = (scheduleRows ?? null) as ProfessionalSchedule | null
 
-  // Si no tiene horario configurado, asumimos horario por defecto
-  const startTime = schedule?.start_time ?? DEFAULT_START
-  const endTime = schedule?.end_time ?? DEFAULT_END
+  // Si el profesional no tiene horario configurado para ese día o no trabaja,
+  // no hay disponibilidad (es obligatorio configurar su agenda).
+  if (!schedule || !schedule.is_working) {
+    return { slots: [], professionalId, schedule }
+  }
+
+  const startTime = schedule.start_time ?? DEFAULT_START
+  const endTime = schedule.end_time ?? DEFAULT_END
   const durationMinutes = service.duration_minutes ?? DEFAULT_SLOT_MINUTES
 
   // 2. Citas existentes del profesional ese día (no canceladas)
@@ -100,14 +105,23 @@ export async function getAvailableSlots(
   return { slots, professionalId, schedule }
 }
 
-/** Obtiene los profesionales con rol Veterinario para el selector de cita. */
-export async function getProfessionals(): Promise<{ id: string; full_name: string }[]> {
-  const { data, error } = await supabase
+/**
+ * Obtiene los profesionales activos para el selector de cita.
+ * El área del servicio determina qué profesionales mostrar:
+ * 'Veterinaria' → Veterinarios, 'Peluquería' → Peluqueros.
+ */
+export async function getProfessionals(area?: string): Promise<{ id: string; full_name: string; role: string }[]> {
+  let query = supabase
     .from('profiles')
-    .select('id, full_name')
-    .eq('role', 'Veterinario')
+    .select('id, full_name, role')
     .eq('active', true)
+    .in('role', ['Veterinario', 'Peluquero'])
     .order('full_name')
+
+  if (area === 'Veterinaria') query = query.eq('role', 'Veterinario')
+  else if (area === 'Peluquería') query = query.eq('role', 'Peluquero')
+
+  const { data, error } = await query
   if (error) throw error
-  return (data ?? []) as { id: string; full_name: string }[]
+  return (data ?? []) as { id: string; full_name: string; role: string }[]
 }

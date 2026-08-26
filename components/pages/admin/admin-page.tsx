@@ -175,6 +175,7 @@ function AdminForm({ section, initial, onClose, onSave }: { section: AdminSectio
           <Field label="Slug"><input value={String(form.slug ?? '')} onChange={(e) => set('slug', e.target.value)} /></Field>
           {section === 'productos' && <><Field label="Precio USD"><input type="number" value={Number(form.price) || 0} onChange={(e) => set('price', Number(e.target.value))} /></Field><Field label="Stock"><input type="number" value={Number(form.stock) || 0} onChange={(e) => set('stock', Number(e.target.value))} /></Field></>}
           {section === 'servicios' && <><Field label="Duración"><input value={String(form.duration ?? '30 min')} onChange={(e) => set('duration', e.target.value)} /></Field><Field label="Área"><select value={String(form.area ?? 'Veterinaria')} onChange={(e) => set('area', e.target.value)}><option>Veterinaria</option><option>Peluquería</option></select></Field></>}
+          {section === 'usuarios' && <Field label="Rol"><select value={String(form.role ?? 'Cliente')} onChange={(e) => set('role', e.target.value)}><option>Administrador</option><option>Veterinario</option><option>Peluquero</option><option>Caja</option><option>Cliente</option></select></Field>}
           <Field label="Estado" full><select value={String(form.status ?? 'Activo')} onChange={(e) => set('status', e.target.value)}><option>Activo</option><option>Borrador</option><option>Inactivo</option></select></Field>
         </div>
         <div className="mt-8 flex justify-end gap-3">
