@@ -8,6 +8,7 @@ import type { MyAppointment } from '@/lib/services/client-area'
 import type { MedicalRecord, Pet, SetView, Toast } from '@/lib/types'
 import { PageLoader, EmptyState } from '@/components/ui'
 import PetFormModal from '@/components/pages/patients/pet-form-modal'
+import ClientReports from '@/components/pages/client/client-reports'
 
 /** Dashboard del cliente autenticado conectado a Supabase. */
 export default function ClientPage({ setView, showToast }: { setView: SetView; showToast: Toast }) {
@@ -20,6 +21,7 @@ export default function ClientPage({ setView, showToast }: { setView: SetView; s
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showAddPet, setShowAddPet] = useState(false)
+  const [tab, setTab] = useState<'panel' | 'informes'>('panel')
 
   const loadAll = useCallback(async () => {
     setLoading(true)
@@ -94,6 +96,15 @@ export default function ClientPage({ setView, showToast }: { setView: SetView; s
         </div>
       </header>
 
+      <nav className="mt-8 flex gap-2 overflow-x-auto pb-1" aria-label="Secciones del panel">
+        <button onClick={() => setTab('panel')} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold ${tab === 'panel' ? 'bg-[#0d5c5b] text-white' : 'bg-white text-[#66817a] ring-1 ring-[#e1ebe6]'}`}>Mi panel</button>
+        <button onClick={() => setTab('informes')} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold ${tab === 'informes' ? 'bg-[#0d5c5b] text-white' : 'bg-white text-[#66817a] ring-1 ring-[#e1ebe6]'}`}>Informes</button>
+      </nav>
+
+      {tab === 'informes' ? (
+        <div className="mt-8"><ClientReports showToast={showToast} /></div>
+      ) : (
+      <>
       <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Summary label="Mascotas" value={String(pets.length)} detail={pets.length === 1 ? 'En tu familia' : 'En tu familia'} icon={PawPrint} />
         <Summary label="Próxima cita" value={nextAppointment ? formatDay(nextAppointment.date) : '—'} detail={nextAppointment ? nextAppointment.service_name : 'Sin citas próximas'} icon={CalendarDays} />
@@ -181,6 +192,8 @@ export default function ClientPage({ setView, showToast }: { setView: SetView; s
           <button onClick={() => setShowAddPet(true)} className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#e7f1eb] px-4 py-3 text-sm font-bold text-[#0d5c5b]"><Plus className="size-4" /> {pets.length > 0 ? 'Agregar mascota' : 'Registrar mi mascota'}</button>
         </div>
       </section>
+      </>
+      )}
 
       {showAddPet && (
         <PetFormModal
