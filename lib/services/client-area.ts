@@ -4,20 +4,62 @@ import type { Appointment, Customer, MedicalRecord, Pet, Sale, SaleItem } from '
 
 /**
  * Obtiene el registro de cliente vinculado al usuario autenticado.
- * El trigger de la migración 0011 vincula automáticamente por user_id.
+ * Si no existe, lo CREA automáticamente a partir de los datos de auth
+ * (full_name, email, phone) para que cualquier usuario autenticado
+ * pueda registrar mascotas sin depender del trigger 0011.
  */
 export async function getMyCustomer(): Promise<Customer | null> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
+  // 1. Buscar el cliente vinculado por user_id
   const { data, error } = await supabase
     .from('customers')
     .select('*')
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (error || !data) return null
-  return data as Customer
+  if (error) throw error
+  if (data) return data as Customer
+
+  // 2. No existe → intentar buscarlo por email (usuarios creados antes del trigger)
+  if (user.email) {
+    const { data: byEmail } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('email', user.email)
+      .maybeSingle()
+
+    if (byEmail) {
+      // Vincular el user_id y devolverlo
+      const { data: updated, error: updateError } = await supabase
+        .from('customers')
+        .update({ user_id: user.id })
+        .eq('id', byEmail.id)
+        .select()
+        .single()
+      if (!updateError && updated) return updated as Customer
+    }
+  }
+
+  // 3. Crear el registro de cliente automáticamente
+  const fullName = (user.user_metadata?.full_name as string) ?? user.email?.split('@')[0] ?? 'Cliente'
+  const phone = (user.user_metadata?.phone as string) ?? null
+
+  const { data: created, error: createError } = await supabase
+    .from('customers')
+    .insert({
+      user_id: user.id,
+      name: fullName,
+      email: user.email ?? null,
+      phone,
+      status: 'Activo',
+    })
+    .select()
+    .single()
+
+  if (createError) throw createError
+  return created as Customer
 }
 
 /** Mascotas del cliente autenticado, ordenadas por nombre. */

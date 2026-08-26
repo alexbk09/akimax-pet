@@ -104,7 +104,12 @@ export async function getPets(options: {
   }
 }
 
-/** Crea una mascota con todos los campos (imagen, especie, tamaño). */
+/**
+ * Crea una mascota con todos los campos (imagen, especie, tamaño).
+ * Es tolerante a esquemas: si la BD no tiene las columnas nuevas
+ * (species_id, image_url, size, initials — migraciones 0014/0020 no aplicadas),
+ * reintenta con el esquema base de la migración 0003.
+ */
 export async function createPet(pet: Omit<Pet, 'id' | 'created_at' | 'initials'> & { initials?: string }): Promise<Pet> {
   const initials = pet.initials ?? pet.name
     .split(' ')
@@ -113,7 +118,28 @@ export async function createPet(pet: Omit<Pet, 'id' | 'created_at' | 'initials'>
     .slice(0, 2)
     .toUpperCase()
 
+  // 1er intento: con todas las columnas nuevas
   const { data, error } = await supabase.from('pets').insert({ ...pet, initials }).select().single()
+  if (!error && data) return data as Pet
+
+  // Si el error es por columna inexistente, reintenta con el esquema base (0003)
+  const message = error?.message ?? ''
+  if (message.toLowerCase().includes('column') || message.toLowerCase().includes('does not exist') || message.toLowerCase().includes('undefined')) {
+    const base: Record<string, unknown> = {
+      customer_id: pet.customer_id,
+      name: pet.name,
+      species: pet.species,
+    }
+    if (pet.breed !== undefined) base.breed = pet.breed
+    if (pet.birth_date !== undefined) base.birth_date = pet.birth_date
+    if (pet.weight_kg !== undefined) base.weight_kg = pet.weight_kg
+    if (pet.color !== undefined) base.color = pet.color
+
+    const { data: retryData, error: retryError } = await supabase.from('pets').insert(base).select().single()
+    if (retryError) throw retryError
+    return retryData as Pet
+  }
+
   if (error) throw error
   return data as Pet
 }
