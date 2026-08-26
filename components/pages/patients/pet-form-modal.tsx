@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Camera, Loader2, Search, X } from 'lucide-react'
+import { Camera, Check, Loader2, Search, X } from 'lucide-react'
 import type { Breed, Pet, Species, Toast } from '@/lib/types'
 import { createPet, updatePet } from '@/lib/services/customers'
 import { getBreedsBySpecies, getSpecies } from '@/lib/services/pets-schedule'
@@ -44,6 +44,7 @@ export default function PetFormModal({ customerId, pet, onClose, onSaved, showTo
   const [speciesList, setSpeciesList] = useState<Species[]>([])
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -137,7 +138,7 @@ export default function PetFormModal({ customerId, pet, onClose, onSaved, showTo
     setBreedOpen(false)
   }
 
-  /** Guarda la mascota (crea o actualiza). */
+  /** Guarda la mascota (crea o actualiza). Muestra confirmación visual y cierra tras guardar. */
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
     if (!name.trim()) {
@@ -150,6 +151,7 @@ export default function PetFormModal({ customerId, pet, onClose, onSaved, showTo
     }
     setSaving(true)
     setError(null)
+    setSuccess(null)
     try {
       const payload = {
         name: name.trim(),
@@ -165,18 +167,37 @@ export default function PetFormModal({ customerId, pet, onClose, onSaved, showTo
       const saved = pet
         ? await updatePet(pet.id, { ...payload } as Partial<Pet>)
         : await createPet({ ...payload, customer_id: resolvedCustomerId } as Omit<Pet, 'id' | 'created_at' | 'initials'> & { initials?: string })
-      onSaved(saved)
-      showToast(pet ? 'Mascota actualizada' : 'Mascota registrada')
+
+      // 1) Confirmación visual en el modal + toast global
+      const message = pet ? 'Mascota actualizada' : 'Mascota registrada'
+      setSuccess(message)
+      showToast(`${message} correctamente`)
+
+      // 2) Pequeña pausa para que el usuario vea el check, luego cerrar y refrescar
+      window.setTimeout(() => {
+        onSaved(saved)
+      }, 700)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo guardar la mascota')
-    } finally {
       setSaving(false)
+      setError(err instanceof Error ? err.message : 'No se pudo guardar la mascota')
     }
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#173b3b]/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
-      <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white shadow-2xl">
+      <div className="relative max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white shadow-2xl">
+        {/* Overlay de éxito: check grande + mensaje, se cierra solo */}
+        {success && (
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center rounded-3xl bg-white/95 backdrop-blur-sm">
+            <span className="flex size-16 items-center justify-center rounded-full bg-[#e7f1eb]">
+              <Check className="size-8 text-[#0d5c5b]" strokeWidth={3} />
+            </span>
+            <p className="mt-4 font-serif text-2xl font-bold text-[#173b3b]">¡{success}!</p>
+            <p className="mt-2 flex items-center gap-2 text-sm text-[#78918a]">
+              <Loader2 className="size-3.5 animate-spin text-[#0d5c5b]" /> Actualizando la lista de mascotas...
+            </p>
+          </div>
+        )}
         <div className="flex items-center justify-between border-b border-[#edf2ee] px-8 py-5">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#d37c52]">{pet ? 'Editar' : 'Nuevo'} paciente</p>

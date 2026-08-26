@@ -83,10 +83,16 @@ export default function PatientsPage({ showToast }: { showToast: Toast }) {
     }
   }
 
-  /** Recarga la lista tras guardar. */
-  function handleSaved() {
+  /**
+   * Recarga la lista tras guardar y selecciona la mascota recién
+   * creada/editada para que el detalle se actualice al instante.
+   */
+  function handleSaved(savedPet: Pet) {
     setModalOpen(false)
-    void loadPets(page, search)
+    setSelected(savedPet.id)
+    void loadPets(page, search).then(() => {
+      void loadHistory(savedPet.id)
+    })
   }
 
   /** Cambia de página manteniendo la búsqueda. */
