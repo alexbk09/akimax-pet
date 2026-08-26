@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import AdminModule from '@/components/pages/admin/admin-page'
 import OperationsCalendar from '@/components/pages/operations/operations-calendar'
 import SpeciesManager from '@/components/pages/operations/species-manager'
@@ -26,17 +26,48 @@ import { RoleGuard } from '@/components/ui'
 import { useAuth, useCart, useExchangeRate } from '@/lib/hooks'
 import type { View } from '@/lib/types'
 
+/** Clave en sessionStorage para recordar la vista activa entre recargas. */
+const VIEW_STORAGE_KEY = 'akimax:active-view'
+
+/** Restaura la última vista activa guardada (inicio si no hay nada). */
+function restoreView(): View {
+  if (typeof window === 'undefined') return 'inicio'
+  const saved = window.sessionStorage.getItem(VIEW_STORAGE_KEY)
+  const validViews: View[] = ['inicio', 'tienda', 'servicios', 'contacto', 'citas', 'pacientes', 'cliente', 'perfil', 'operaciones', 'caja', 'administracion', 'roles', 'reportes', 'login', 'registro']
+  return validViews.includes(saved as View) ? (saved as View) : 'inicio'
+}
+
 /**
  * Shell principal: orquesta módulos, control de acceso por permisos
  * y estado global (auth, carrito, tasa de cambio).
+ *
+ * La vista activa se persiste en sessionStorage para que, si el
+ * navegador recarga la página (p. ej. al volver a la pestaña y el
+ * proceso fue descartado), el usuario vuelva exactamente donde estaba
+ * en lugar de caer en "Inicio".
  */
 export default function AppShell() {
-  const [view, setView] = useState<View>('inicio')
+  // Inicializa la vista con el valor guardado (evita parpadeo de "Inicio").
+  const [view, setViewState] = useState<View>(() => restoreView())
   const [cartOpen, setCartOpen] = useState(false)
   const [toast, setToast] = useState('')
   const { loading: authLoading, isAuthenticated } = useAuth()
   const { items, count, subtotal, updateQuantity, removeItem, clearCart } = useCart()
   const { rate } = useExchangeRate()
+
+  // Persistir la vista activa para restaurarla si la página se recarga.
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(VIEW_STORAGE_KEY, view)
+    } catch {
+      // sessionStorage puede no estar disponible (modo privado estricto).
+    }
+  }, [view])
+
+  function setView(next: View) {
+    setViewState(next)
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
+  }
 
   function showToast(message: string) {
     setToast(message)
@@ -47,7 +78,18 @@ export default function AppShell() {
     setView('login')
   }
 
-  if (authLoading) {
+  // La pantalla de carga completa SOLO debe verse la primera vez.
+  // Si la sesión se restaura en segundo plano (silent refresh), la app
+  // ya se muestra y no debe parpadear. Mantenemos un marcador para no
+  // volver a mostrar el loader en ninguna recarga posterior.
+  const [hasHydrated, setHasHydrated] = useState(false)
+  useEffect(() => {
+    if (!authLoading) setHasHydrated(true)
+  }, [authLoading])
+
+  // Evita renderizar la vista protegida antes de que la sesión se resuelva.
+  // Pero mostramos la vista pública previa (o la guardada) de inmediato.
+  if (authLoading && !hasHydrated) {
     return <div className="flex min-h-screen items-center justify-center"><p className="text-sm font-semibold text-[#78918a]">Cargando sesión...</p></div>
   }
 

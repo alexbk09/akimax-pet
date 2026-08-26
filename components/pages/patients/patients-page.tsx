@@ -5,7 +5,8 @@ import { ChevronRight, HeartPulse, Pencil, Plus, Search } from 'lucide-react'
 import type { MedicalRecord, Pet, Toast } from '@/lib/types'
 import { PageContainer, PageHeader } from '@/components/pages/shared/page-header'
 import { getPets, getMedicalRecords } from '@/lib/services/customers'
-import { getMyCustomer } from '@/lib/services/client-area'
+import { getMyCustomer, getMyPets } from '@/lib/services/client-area'
+import { useAuth } from '@/lib/hooks'
 import PetFormModal from '@/components/pages/patients/pet-form-modal'
 import { PageLoader, EmptyState, Pagination } from '@/components/ui'
 
@@ -17,6 +18,7 @@ const PAGE_SIZE = 6
  * historia clínica de la seleccionada y modal de registro/edición.
  */
 export default function PatientsPage({ showToast }: { showToast: Toast }) {
+  const { profile } = useAuth()
   const [pets, setPets] = useState<(Pet & { customer_name: string; species_name: string | null })[]>([])
   const [history, setHistory] = useState<MedicalRecord[]>([])
   const [selected, setSelected] = useState<number | null>(null)
@@ -29,17 +31,36 @@ export default function PatientsPage({ showToast }: { showToast: Toast }) {
   const [search, setSearch] = useState('')
   const [total, setTotal] = useState(0)
 
+  const isClientRole = profile?.role === 'Cliente'
+
   const loadPets = useCallback(async (targetPage: number = 1, term: string = '') => {
     setLoading(true)
     setError(null)
     try {
-      const [result, customer] = await Promise.all([
-        getPets({ page: targetPage, pageSize: PAGE_SIZE, search: term }),
-        getMyCustomer(),
-      ])
+      const customer = await getMyCustomer()
+      setMyCustomerId(customer?.id ?? null)
+
+      // Cliente autenticado: cargar SOLO sus mascotas (sin paginación global)
+      if (isClientRole && customer) {
+        const myPets = await getMyPets(customer.id)
+        const filtered = term
+          ? myPets.filter((pet) => pet.name.toLowerCase().includes(term.toLowerCase()))
+          : myPets
+        setPets(filtered as (Pet & { customer_name: string; species_name: string | null })[])
+        setTotal(filtered.length)
+        if (filtered.length > 0 && selected === null) {
+          const first = filtered[0]
+          setSelected(first.id)
+          void loadHistory(first.id)
+        }
+        setLoading(false)
+        return
+      }
+
+      // Staff / Admin: carga global con paginación
+      const result = await getPets({ page: targetPage, pageSize: PAGE_SIZE, search: term })
       setPets(result.data)
       setTotal(result.count)
-      setMyCustomerId(customer?.id ?? null)
       if (result.data.length > 0 && selected === null) {
         const first = result.data[0]
         setSelected(first.id)
@@ -51,7 +72,7 @@ export default function PatientsPage({ showToast }: { showToast: Toast }) {
       setLoading(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected === null])
+  }, [isClientRole, selected === null])
 
   const loadHistory = useCallback(async (petId: number) => {
     try {
@@ -67,7 +88,7 @@ export default function PatientsPage({ showToast }: { showToast: Toast }) {
   }, [page, search, loadPets])
 
   const activePet = pets.find((pet) => pet.id === selected) ?? null
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const totalPages = isClientRole ? 1 : Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   /** Abre el modal para nueva mascota. */
   function openCreateModal() {

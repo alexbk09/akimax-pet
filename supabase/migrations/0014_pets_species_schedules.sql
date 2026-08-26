@@ -132,19 +132,3 @@ insert into public.species (name, slug, description, icon) values
   ('Equino', 'equino', 'Caballos y ponis. Cuidado de cascos, vacunas y alimentación de forraje.', 'horse'),
   ('Otro', 'otro', 'Otra especie no listada. Consulta con tu veterinario sobre su cuidado.', 'paw-print')
 on conflict (name) do nothing;
-</｜｜DSML｜｜content>
-<task_progress>
-- [x] Explorar estructura del proyecto
-- [x] Revisar servicios existentes en lib/services
-- [x] Revisar types existentes
-- [x] Revisar migraciones y tablas Supabase existentes
-- [x] Crear migración: especies, pets mejorados, horarios, duración servicios, end_time citas
-- [ ] Crear tipos en lib/types.ts (Species, ProfessionalSchedule, actualizar Pet/Service/Appointment)
-- [ ] Crear servicios (lib/services): species, schedules, actualizar customers/catalog/appointments
-- [ ] Crear componentes UI: modal de registro mascota, formulario de citas
-- [ ] Integrar imágenes de mascotas (supabase storage)
-- [ ] Calcular horarios disponibles según servicio y profesional
-- [ ] Actualizar app-shell y pacientes con el nuevo flujo
-- [ ] Probar y verificar
-</task_progress>
-</write_to_file>

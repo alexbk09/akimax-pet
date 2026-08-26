@@ -89,27 +89,39 @@ export function useAsync<T>(fetcher: () => Promise<T>, dependencies: unknown[] =
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const fetcherRef = useRef(fetcher)
+  // Identificador de petición: se incrementa en cada carga y al desmontar.
+  // Permite ignorar respuestas obsoletas y evitar setState tras desmontar.
+  const requestIdRef = useRef(0)
 
   useEffect(() => {
     fetcherRef.current = fetcher
   }, [fetcher])
 
   const load = useCallback(async () => {
+    const requestId = ++requestIdRef.current
     setLoading(true)
     setError(null)
     try {
       const result = await fetcherRef.current()
+      // Petición reemplazada o componente desmontado: descartar resultado.
+      if (requestId !== requestIdRef.current) return
       setData(result)
     } catch (err) {
+      if (requestId !== requestIdRef.current) return
       setError(err instanceof Error ? err.message : 'Error al cargar los datos')
     } finally {
-      setLoading(false)
+      if (requestId === requestIdRef.current) setLoading(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...dependencies])
 
   useEffect(() => {
     void load()
+    // Al desmontar (cambio de vista, navegación, recarga) se invalida
+    // cualquier petición pendiente: ninguna promesa hará setState.
+    return () => {
+      requestIdRef.current += 1
+    }
   }, [load])
 
   return { data, loading, error, reload: load }
