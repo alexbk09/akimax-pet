@@ -1,15 +1,7 @@
-packages:
-  - 'app'
-  - 'components/**'
-  - 'lib/**'
-
-allowBuilds:
-  msw: true
-
-onlyBuiltDependencies:
+﻿onlyBuiltDependencies:
+  - msw
   - '@tailwindcss/oxide'
   - '@parcel/watcher'
   - 'sharp'
   - 'esbuild'
   - 'unrs-resolver'
-  - 'msw'
