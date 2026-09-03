@@ -5,7 +5,6 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'akimax pet | Clínica veterinaria & pet shop',
   description: 'Cuidado, salud y productos para ellos. Todo en un mismo lugar.',
-  generator: 'v0.app',
   icons: {
     icon: [
       {
