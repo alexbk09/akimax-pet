@@ -1,5 +1,9 @@
 import { supabase } from '@/lib/supabase/client'
+import { getCurrentProfile } from './auth'
 import type { CashRegister, PaymentMethod, Sale } from '@/lib/types'
+
+let localSales: Sale[] = []
+let localRegister: CashRegister | null = null
 
 const PAGE_SIZE = 15
 
@@ -47,6 +51,13 @@ export async function getSales(options: { page?: number; pageSize?: number } = {
  */
 export async function createSale(input: SaleInput): Promise<Sale> {
   const subtotal = input.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const sale = { id: Date.now(), customer_id: input.customerId, subtotal_usd: subtotal, total_usd: subtotal, total_ves: subtotal * input.exchangeRate, payment_method: input.paymentMethod, status: 'Pagada', created_at: new Date().toISOString() } as Sale
+  localSales = [sale, ...localSales]
+  return sale
+}
+
+export async function createSaleLegacy(input: SaleInput): Promise<Sale> {
+  const subtotal = input.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const totalVes = subtotal * input.exchangeRate
 
   const { data: sale, error } = await supabase
@@ -85,53 +96,33 @@ export async function createSale(input: SaleInput): Promise<Sale> {
 }
 
 /** Obtiene la caja abierta del usuario actual, si existe. */
-export async function getOpenRegister(): Promise<CashRegister | null> {
+export async function getOpenRegister(): Promise<CashRegister | null> { return localRegister }
+
+export async function getOpenRegisterLegacy(): Promise<CashRegister | null> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
-  const { data, error } = await supabase
-    .from('cash_registers')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('status', 'Abierta')
-    .order('opened_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  const { data, error } = await supabase.from('cash_registers').select('*').eq('user_id', user.id).eq('status', 'Abierta').order('opened_at', { ascending: false }).limit(1).maybeSingle()
   if (error || !data) return null
   return data as CashRegister
 }
 
 /** Abre la caja con un fondo inicial. */
 export async function openRegister(openingAmount: number): Promise<CashRegister> {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Usuario no autenticado')
-  const { data, error } = await supabase
-    .from('cash_registers')
-    .insert({ user_id: user.id, opening_amount: openingAmount, status: 'Abierta' })
-    .select()
-    .single()
-  if (error) throw error
-  return data as CashRegister
+  const profile = await getCurrentProfile()
+  if (!profile) throw new Error('Usuario no autenticado')
+  localRegister = { id: Date.now(), user_id: profile.id, opening_amount: openingAmount, status: 'Abierta', opened_at: new Date().toISOString() } as CashRegister
+  return localRegister
 }
 
 /** Cierra la caja registrando el monto final. */
-export async function closeRegister(id: number, closingAmount: number): Promise<void> {
-  const { error } = await supabase
-    .from('cash_registers')
-    .update({ status: 'Cerrada', closing_amount: closingAmount, closed_at: new Date().toISOString() })
-    .eq('id', id)
-  if (error) throw error
+export async function closeRegister(_id: number, closingAmount: number): Promise<void> {
+  if (!localRegister) throw new Error('No hay una caja abierta')
+  localRegister = { ...localRegister, status: 'Cerrada', closing_amount: closingAmount, closed_at: new Date().toISOString() } as CashRegister
 }
 
 /** Resumen de ventas de hoy para la caja. */
 export async function getTodaySalesSummary() {
   const today = new Date().toISOString().slice(0, 10)
-  const { data, error } = await supabase
-    .from('sales')
-    .select('total_usd, total_ves')
-    .gte('created_at', `${today}T00:00:00`)
-    .lte('created_at', `${today}T23:59:59`)
-  if (error) throw error
-  const totalUsd = (data ?? []).reduce((sum, row) => sum + Number(row.total_usd), 0)
-  const totalVes = (data ?? []).reduce((sum, row) => sum + Number(row.total_ves), 0)
-  return { totalUsd, totalVes, count: data?.length ?? 0 }
+  const data = localSales.filter((sale) => sale.created_at?.startsWith(today))
+  return { totalUsd: data.reduce((sum, row) => sum + Number(row.total_usd), 0), totalVes: data.reduce((sum, row) => sum + Number(row.total_ves), 0), count: data.length }
 }

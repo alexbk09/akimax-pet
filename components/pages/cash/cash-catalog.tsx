@@ -16,6 +16,7 @@ type CatalogItem = { id: string; name: string; category: string; price: number; 
 export function CashCatalog({ onAdd }: { onAdd: (item: CatalogItem) => void }) {
   const [query, setQuery] = React.useState('')
   const [kind, setKind] = React.useState<'Todos' | 'Producto' | 'Servicio'>('Todos')
+  const [category, setCategory] = React.useState('Todas')
   const debouncedQuery = useDebounce(query, 300)
 
   const { data, loading, error } = useAsync(async () => {
@@ -28,7 +29,8 @@ export function CashCatalog({ onAdd }: { onAdd: (item: CatalogItem) => void }) {
     return [...productItems, ...serviceItems]
   }, [debouncedQuery, kind])
 
-  const filtered = (data ?? []).filter((item) => kind === 'Todos' || item.kind === kind)
+  const categories = Array.from(new Set((data ?? []).map((item) => item.category).filter(Boolean)))
+  const filtered = (data ?? []).filter((item) => (kind === 'Todos' || item.kind === kind) && (category === 'Todas' || item.category === category))
 
   return (
     <div className="rounded-[2rem] bg-white p-6 ring-1 ring-[#e1ebe6]">
@@ -44,12 +46,13 @@ export function CashCatalog({ onAdd }: { onAdd: (item: CatalogItem) => void }) {
           </label>
           <label className="flex items-center gap-2 rounded-xl bg-[#f3f7f3] px-3 py-2">
             <SlidersHorizontal className="size-4 text-[#78918a]" />
-            <select aria-label="Filtrar catálogo" value={kind} onChange={(e) => setKind(e.target.value as typeof kind)} className="bg-transparent text-sm font-semibold outline-none">
-              <option>Todos</option>
-              <option>Producto</option>
-              <option>Servicio</option>
+            <select aria-label="Filtrar tipo" value={kind} onChange={(e) => setKind(e.target.value as typeof kind)} className="bg-transparent text-sm font-semibold outline-none">
+              <option>Todos</option><option>Producto</option><option>Servicio</option>
             </select>
           </label>
+          <select aria-label="Filtrar categoría" value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-xl bg-[#f3f7f3] px-3 py-2 text-sm font-semibold text-[#66817a] outline-none">
+            <option>Todas</option>{categories.map((item) => <option key={item}>{item}</option>)}
+          </select>
         </div>
       </div>
 

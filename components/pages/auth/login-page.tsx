@@ -13,13 +13,15 @@ export function LoginPage({ setView, showToast }: { setView: SetView; showToast:
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
+    await loginWith(email.trim(), password)
+  }
+
+  async function loginWith(nextEmail: string, nextPassword: string) {
     setError('')
     setLoading(true)
     try {
-      await signIn(email.trim(), password)
+      await signIn(nextEmail, nextPassword)
       showToast('¡Sesión iniciada correctamente!')
-      // El hook useAuth escucha onAuthStateChange y actualiza el estado.
-      // Redirigir a inicio: allí se muestra el dashboard si la sesión persiste.
       setView('inicio')
     } catch {
       setError('Credenciales incorrectas. Revisa tu correo y contraseña.')
@@ -36,8 +38,8 @@ export function LoginPage({ setView, showToast }: { setView: SetView; showToast:
         <p className="mt-2 text-sm leading-6 text-[#78918a]">Inicia sesión para gestionar tus mascotas, citas y compras.</p>
       </div>
       <div className="mt-6 grid gap-2 sm:grid-cols-2">
-        <button type="button" onClick={() => { setEmail('cliente@akimax.pet'); setPassword('cliente123') }} className="rounded-2xl border border-[#dce7e2] bg-white px-3 py-3 text-left text-xs hover:border-[#9ec6b0]"><b className="block text-[#173b3b]">Entrar como cliente</b><span className="mt-1 block text-[#78918a]">cliente@akimax.pet</span></button>
-        <button type="button" onClick={() => { setEmail('admin@akimax.pet'); setPassword('admin123') }} className="rounded-2xl border border-[#dce7e2] bg-white px-3 py-3 text-left text-xs hover:border-[#9ec6b0]"><b className="block text-[#173b3b]">Entrar como administrador</b><span className="mt-1 block text-[#78918a]">admin@akimax.pet</span></button>
+        <button type="button" onClick={() => { setEmail('cliente@akimax.pet'); setPassword('cliente123'); void loginWith('cliente@akimax.pet', 'cliente123') }} className="rounded-2xl border border-[#dce7e2] bg-white px-3 py-3 text-left text-xs hover:border-[#9ec6b0]"><b className="block text-[#173b3b]">Entrar como cliente</b><span className="mt-1 block text-[#78918a]">cliente@akimax.pet</span></button>
+        <button type="button" onClick={() => { setEmail('admin@akimax.pet'); setPassword('admin123'); void loginWith('admin@akimax.pet', 'admin123') }} className="rounded-2xl border border-[#dce7e2] bg-white px-3 py-3 text-left text-xs hover:border-[#9ec6b0]"><b className="block text-[#173b3b]">Entrar como administrador</b><span className="mt-1 block text-[#78918a]">admin@akimax.pet</span></button>
       </div>
       <LoginForm
         email={email}
