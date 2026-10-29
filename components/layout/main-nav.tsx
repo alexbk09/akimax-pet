@@ -33,7 +33,7 @@ const authedLinks: NavLink[] = [
   { id: 'citas', label: 'Citas', permission: 'appointments:view' },
   { id: 'pacientes', label: 'Mis mascotas', permission: 'patients:view' },
   { id: 'cliente', label: 'Mi panel', permission: 'dashboard:view' },
-  { id: 'operaciones', label: 'Panel operativo', permission: 'dashboard:view' },
+  { id: 'operaciones', label: 'Panel operativo', permission: 'operations:view' },
   { id: 'caja', label: 'Caja', permission: 'cash:view' },
   { id: 'administracion', label: 'Administración', permission: 'catalog:manage' },
   { id: 'roles', label: 'Roles', permission: 'roles:manage' },

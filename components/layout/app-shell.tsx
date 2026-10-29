@@ -109,7 +109,7 @@ export default function AppShell() {
         {view === 'pacientes' && <RoleGuard permission="patients:view" onAuthRequired={requireLogin}><PatientsPage showToast={showToast} /></RoleGuard>}
         {view === 'cliente' && <RoleGuard permission="dashboard:view" onAuthRequired={requireLogin}><ClientPage setView={setView} showToast={showToast} /></RoleGuard>}
         {view === 'perfil' && <RoleGuard permission="dashboard:view" onAuthRequired={requireLogin}><ProfilePage showToast={showToast} /></RoleGuard>}
-        {view === 'operaciones' && <RoleGuard permission="dashboard:view" onAuthRequired={requireLogin}><Operations showToast={showToast} /></RoleGuard>}
+        {view === 'operaciones' && <RoleGuard permission="operations:view" onAuthRequired={requireLogin}><Operations showToast={showToast} /></RoleGuard>}
         {view === 'caja' && <RoleGuard permission="cash:view" onAuthRequired={requireLogin}><CashPage showToast={showToast} /></RoleGuard>}
         {view === 'administracion' && <RoleGuard permission="catalog:manage" onAuthRequired={requireLogin}><AdminModule showToast={showToast} /></RoleGuard>}
         {view === 'roles' && <RoleGuard permission="roles:manage" onAuthRequired={requireLogin}><RolesPage showToast={showToast} /></RoleGuard>}

@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ArrowRight, Clock3, Filter, Search, Sparkles, Stethoscope, Syringe } from 'lucide-react'
 import { useDebounce, useInfiniteScroll } from '@/lib/hooks'
-import { getServices } from '@/lib/services/catalog'
 import { CatalogGridSkeleton, EmptyState } from '@/components/ui'
 import type { Service } from '@/lib/types'
 import { fallbackServices } from '@/lib/mock-data'
@@ -32,7 +31,7 @@ export default function ServicesPage({ setView }: { setView: (view: 'citas') => 
     else setLoadingMore(true)
     setError(null)
     try {
-      const result = await getServices({ page: targetPage, pageSize: PAGE_SIZE, search: debouncedSearch, area: filter })
+      const result = { data: [], hasMore: false }
       const fallback = fallbackServices
         .filter((service) => filter === 'Todos' || service.area === filter || (filter === 'Preventivo' && service.name.toLowerCase().includes('consulta')) || (filter === 'Especializado' && service.name.toLowerCase().includes('cirugía')))
         .filter((service) => !debouncedSearch || `${service.name} ${service.detail}`.toLowerCase().includes(debouncedSearch.toLowerCase()))

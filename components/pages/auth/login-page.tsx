@@ -35,6 +35,10 @@ export function LoginPage({ setView, showToast }: { setView: SetView; showToast:
         <h1 className="mt-5 font-serif text-3xl font-bold tracking-tight text-[#173b3b]">Bienvenido de nuevo</h1>
         <p className="mt-2 text-sm leading-6 text-[#78918a]">Inicia sesión para gestionar tus mascotas, citas y compras.</p>
       </div>
+      <div className="mt-6 grid gap-2 sm:grid-cols-2">
+        <button type="button" onClick={() => { setEmail('cliente@akimax.pet'); setPassword('cliente123') }} className="rounded-2xl border border-[#dce7e2] bg-white px-3 py-3 text-left text-xs hover:border-[#9ec6b0]"><b className="block text-[#173b3b]">Entrar como cliente</b><span className="mt-1 block text-[#78918a]">cliente@akimax.pet</span></button>
+        <button type="button" onClick={() => { setEmail('admin@akimax.pet'); setPassword('admin123') }} className="rounded-2xl border border-[#dce7e2] bg-white px-3 py-3 text-left text-xs hover:border-[#9ec6b0]"><b className="block text-[#173b3b]">Entrar como administrador</b><span className="mt-1 block text-[#78918a]">admin@akimax.pet</span></button>
+      </div>
       <LoginForm
         email={email}
         password={password}
