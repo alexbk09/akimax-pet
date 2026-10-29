@@ -1,0 +1,5 @@
+[
+  {"id":1,"name":"Alimento VitalCan Adulto","category":"Alimentos","price":24.9,"stock":12,"tone":"bg-[#e8f3ef]","icon":"bag"},
+  {"id":2,"name":"Collar Soft Touch","category":"Accesorios","price":12.5,"stock":8,"tone":"bg-[#f1eee7]","icon":"collar"},
+  {"id":3,"name":"Pipeta Antipulgas","category":"Cuidado","price":8.75,"stock":4,"tone":"bg-[#e8eef4]","icon":"drop"}
+]

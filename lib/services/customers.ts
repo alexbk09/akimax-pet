@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
+import { dataStore } from '@/lib/data-store'
 import type { Customer, MedicalRecord, Pet } from '@/lib/types'
 import type { PaginatedResult } from './shared'
 
@@ -55,13 +56,8 @@ export async function deleteCustomer(id: number): Promise<void> {
 
 /** Obtiene las mascotas de un cliente. */
 export async function getPetsByCustomer(customerId: number): Promise<Pet[]> {
-  const { data, error } = await supabase
-    .from('pets')
-    .select('*')
-    .eq('customer_id', customerId)
-    .order('name')
-  if (error) throw error
-  return (data ?? []) as Pet[]
+  const pets = await dataStore.pets(customerId)
+  return pets.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 /** Obtiene todas las mascotas (con dueño y especie) con paginación. */
@@ -111,6 +107,12 @@ export async function getPets(options: {
  * reintenta con el esquema base de la migración 0003.
  */
 export async function createPet(pet: Omit<Pet, 'id' | 'created_at' | 'initials'> & { initials?: string }): Promise<Pet> {
+  const initials = pet.initials ?? pet.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()
+  return dataStore.addPet({ ...pet, initials } as Omit<Pet, 'id' | 'created_at'>)
+}
+
+/* Legacy database adapter kept below for the future production repository. */
+export async function createPetLegacy(pet: Omit<Pet, 'id' | 'created_at' | 'initials'> & { initials?: string }): Promise<Pet> {
   const initials = pet.initials ?? pet.name
     .split(' ')
     .map((part) => part[0])
@@ -146,9 +148,9 @@ export async function createPet(pet: Omit<Pet, 'id' | 'created_at' | 'initials'>
 
 /** Actualiza una mascota existente. */
 export async function updatePet(petId: number, patch: Partial<Pet>): Promise<Pet> {
-  const { data, error } = await supabase.from('pets').update(patch).eq('id', petId).select().single()
-  if (error) throw error
-  return data as Pet
+  const updated = await dataStore.updatePet(petId, patch)
+  if (!updated) throw new Error('Mascota no encontrada')
+  return updated
 }
 
 /** Obtiene la historia clínica de una mascota. */

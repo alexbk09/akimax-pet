@@ -26,17 +26,20 @@ const publicLinks: NavLink[] = [
   { id: 'contacto', label: 'Contacto' },
 ]
 
-const authedLinks: NavLink[] = [
+const coreLinks: NavLink[] = [
   { id: 'inicio', label: 'Inicio', permission: 'dashboard:view' },
   { id: 'tienda', label: 'Pet shop', permission: 'catalog:view' },
   { id: 'servicios', label: 'Servicios', permission: 'catalog:view' },
   { id: 'citas', label: 'Citas', permission: 'appointments:view' },
   { id: 'pacientes', label: 'Mis mascotas', permission: 'patients:view' },
   { id: 'cliente', label: 'Mi panel', permission: 'dashboard:view' },
-  { id: 'operaciones', label: 'Panel operativo', permission: 'dashboard:view' },
+]
+
+const adminLinks: NavLink[] = [
+  { id: 'operaciones', label: 'Panel operativo', permission: 'operations:view' },
   { id: 'caja', label: 'Caja', permission: 'cash:view' },
-  { id: 'administracion', label: 'Administración', permission: 'catalog:manage' },
-  { id: 'roles', label: 'Roles', permission: 'roles:manage' },
+  { id: 'administracion', label: 'Catálogo y configuración', permission: 'catalog:manage' },
+  { id: 'roles', label: 'Usuarios y roles', permission: 'roles:manage' },
   { id: 'reportes', label: 'Reportes', permission: 'reports:view' },
 ]
 
@@ -44,9 +47,10 @@ export function MainNav({ view, setView, cartCount, openCart, showToast }: MainN
   const { profile, isAuthenticated, hasPermission } = useAuth()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const links = isAuthenticated
-    ? authedLinks.filter((link) => !link.permission || hasPermission(link.permission))
-    : publicLinks
+  const [adminMenuOpen, setAdminMenuOpen] = useState(view === 'operaciones' || view === 'caja' || view === 'administracion' || view === 'roles' || view === 'reportes')
+  const links = isAuthenticated ? coreLinks.filter((link) => !link.permission || hasPermission(link.permission)) : publicLinks
+  const visibleAdminLinks = adminLinks.filter((link) => !link.permission || hasPermission(link.permission))
+  const isAdminSectionActive = visibleAdminLinks.some((link) => link.id === view)
 
   async function handleLogout() {
     setUserMenuOpen(false)
@@ -70,6 +74,17 @@ export function MainNav({ view, setView, cartCount, openCart, showToast }: MainN
               {link.label}
             </button>
           ))}
+          {isAuthenticated && visibleAdminLinks.length > 0 && (
+            <div className="relative">
+              <button onClick={() => setAdminMenuOpen((open) => !open)} aria-expanded={adminMenuOpen} className={`inline-flex items-center gap-1.5 transition-colors hover:text-[#0d5c5b] ${isAdminSectionActive ? 'font-bold text-[#0d5c5b]' : ''}`}>
+                Administración <ChevronDown className={`size-3.5 transition-transform ${adminMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {adminMenuOpen && <div className="absolute right-0 top-8 z-30 w-56 rounded-2xl bg-white p-2 shadow-xl ring-1 ring-[#e1ebe6]">
+                <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#9aafa7]">Gestión interna</p>
+                {visibleAdminLinks.map((link) => <button key={link.id} onClick={() => setView(link.id)} className={`block w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold hover:bg-[#f1f6f2] hover:text-[#0d5c5b] ${view === link.id ? 'bg-[#e8f3ef] text-[#0d5c5b]' : 'text-[#66817a]'}`}>{link.label}</button>)}
+              </div>}
+            </div>
+          )}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -142,6 +157,10 @@ export function MainNav({ view, setView, cartCount, openCart, showToast }: MainN
                 {link.label}
               </button>
             ))}
+            {isAuthenticated && visibleAdminLinks.length > 0 && <div className="mt-2 rounded-2xl bg-[#f7faf7] p-2">
+              <button onClick={() => setAdminMenuOpen((open) => !open)} className="flex w-full items-center justify-between px-2 py-2 text-left text-xs font-bold uppercase tracking-[0.16em] text-[#0d5c5b]">Administración <ChevronDown className={`size-4 transition-transform ${adminMenuOpen ? 'rotate-180' : ''}`} /></button>
+              {adminMenuOpen && visibleAdminLinks.map((link) => <button key={link.id} onClick={() => { setMobileMenuOpen(false); setView(link.id) }} className="block w-full rounded-xl px-2 py-2.5 text-left text-sm font-semibold text-[#66817a] hover:bg-white hover:text-[#0d5c5b]">{link.label}</button>)}
+            </div>}
           </nav>
           {isAuthenticated && (
             <div className="mt-3 border-t border-[#edf1ee] pt-3">

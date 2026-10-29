@@ -45,6 +45,7 @@ export type Permission =
   | 'roles:manage'
   | 'reports:view'
   | 'inventory:manage'
+  | 'operations:view'
 
 export interface Profile {
   id: string

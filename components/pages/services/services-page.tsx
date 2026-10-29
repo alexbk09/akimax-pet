@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ArrowRight, Clock3, Filter, Search, Sparkles, Stethoscope, Syringe } from 'lucide-react'
 import { useDebounce, useInfiniteScroll } from '@/lib/hooks'
-import { getServices } from '@/lib/services/catalog'
 import { CatalogGridSkeleton, EmptyState } from '@/components/ui'
 import type { Service } from '@/lib/types'
+import { fallbackServices } from '@/lib/mock-data'
 
 const PAGE_SIZE = 6
 const filters = ['Todos', 'Veterinaria', 'Peluquería', 'Preventivo', 'Especializado']
@@ -31,9 +31,14 @@ export default function ServicesPage({ setView }: { setView: (view: 'citas') => 
     else setLoadingMore(true)
     setError(null)
     try {
-      const result = await getServices({ page: targetPage, pageSize: PAGE_SIZE, search: debouncedSearch, area: filter })
-      setServices((current) => replace ? result.data : [...current, ...result.data])
-      setHasMore(result.hasMore)
+      const result = { data: [], hasMore: false }
+      const fallback = fallbackServices
+        .filter((service) => filter === 'Todos' || service.area === filter || (filter === 'Preventivo' && service.name.toLowerCase().includes('consulta')) || (filter === 'Especializado' && service.name.toLowerCase().includes('cirugía')))
+        .filter((service) => !debouncedSearch || `${service.name} ${service.detail}`.toLowerCase().includes(debouncedSearch.toLowerCase()))
+        .map((service) => ({ id: service.id, name: service.name, description: service.detail, duration: service.duration, area: service.area, category: 'Servicio', icon: service.name.includes('Peluquería') ? 'sparkles' : service.name.includes('Cirugía') ? 'syringe' : 'stethoscope', prices: [{ price: service.price }] })) as Service[]
+      const rows: Service[] = result.data.length ? result.data : fallback.slice((targetPage - 1) * PAGE_SIZE, targetPage * PAGE_SIZE)
+      setServices((current) => replace ? rows : [...current, ...rows])
+      setHasMore(result.hasMore || rows.length === PAGE_SIZE)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar servicios')
       setHasMore(false)

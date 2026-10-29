@@ -1,0 +1,5 @@
+[
+  {"id":1,"name":"Consulta general","detail":"Cuidado preventivo y diagnóstico","duration":"30 min","area":"Veterinaria","price":25},
+  {"id":2,"name":"Peluquería & spa","detail":"Una experiencia que se nota","duration":"90 min","area":"Peluquería","price":18},
+  {"id":3,"name":"Cirugía especializada","detail":"Tecnología, cuidado y confianza","duration":"Según procedimiento","area":"Veterinaria","price":120}
+]
