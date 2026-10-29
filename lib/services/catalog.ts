@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/client'
 import type { Category, Product, Service } from '@/lib/types'
+import { fallbackServices } from '@/lib/mock-data'
 import type { PaginatedResult } from './shared'
 
 const PAGE_SIZE = 12
@@ -69,14 +70,11 @@ export async function getServices(options: {
 
   const rows = (data ?? []).map((row) => {
     const raw = row as unknown as { service_prices: unknown[] }
-    return {
-      ...row,
-      prices: raw.service_prices ?? [],
-      category: 'Servicios',
-    }
+    return { ...row, prices: raw.service_prices ?? [], category: 'Servicios' }
   })
-
-  return { data: rows as Service[], count: count ?? 0, hasMore: (count ?? 0) > from + rows.length }
+  const fallback = fallbackServices.map((service) => ({ id: service.id, name: service.name, description: service.detail, duration_minutes: Number.parseInt(service.duration) || 30, area: service.area, category: 'Servicios', status: 'Activo', prices: [{ price: service.price }] })) as unknown as Service[]
+  const result = rows.length ? rows as Service[] : fallback.slice(from, to + 1)
+  return { data: result, count: rows.length ? count ?? 0 : fallback.length, hasMore: from + result.length < (rows.length ? count ?? 0 : fallback.length) }
 }
 
 /** Obtiene todas las categorías visibles. */

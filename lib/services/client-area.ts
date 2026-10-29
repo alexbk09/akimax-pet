@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase/client'
 import { dataStore } from '@/lib/data-store'
 import { getCurrentProfile } from './auth'
 import { getMedicalRecords } from './customers'
+import { getAppointmentsByCustomer } from './appointments'
 import type { Appointment, Customer, MedicalRecord, Pet, Sale, SaleItem } from '@/lib/types'
 
 /**
@@ -52,20 +53,7 @@ export interface MyAppointment extends Appointment {
 /** Próximas citas del cliente autenticado (fecha >= hoy, no canceladas). */
 export async function getMyUpcomingAppointments(customerId: number): Promise<MyAppointment[]> {
   const today = new Date().toISOString().slice(0, 10)
-
-  const { data, error } = await supabase
-    .from('appointments')
-    .select('*, services(name, area), pets(name), profiles(full_name)')
-    .eq('customer_id', customerId)
-    .gte('date', today)
-    .neq('status', 'Cancelada')
-    .order('date', { ascending: true })
-    .order('time', { ascending: true })
-    .limit(10)
-
-  if (error) throw error
-
-  return (data ?? []).map(mapAppointmentRow)
+  return (await getAppointmentsByCustomer(customerId)).filter((appointment) => appointment.date >= today && appointment.status !== 'Cancelada').slice(0, 10)
 }
 
 function mapAppointmentRow(row: MyAppointmentRow): MyAppointment {
@@ -79,17 +67,7 @@ function mapAppointmentRow(row: MyAppointmentRow): MyAppointment {
 
 /** Historial completo de citas del cliente autenticado. */
 export async function getMyAllAppointments(customerId: number): Promise<MyAppointment[]> {
-  const { data, error } = await supabase
-    .from('appointments')
-    .select('*, services(name, area), pets(name), profiles(full_name)')
-    .eq('customer_id', customerId)
-    .order('date', { ascending: false })
-    .order('time', { ascending: false })
-    .limit(50)
-
-  if (error) throw error
-
-  return (data ?? []).map(mapAppointmentRow)
+  return (await getAppointmentsByCustomer(customerId)).sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`)).slice(0, 50)
 }
 
 /** Resumen de gastos del cliente en servicios y pet shop (ventas pagadas). */
