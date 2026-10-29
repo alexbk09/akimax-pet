@@ -21,6 +21,7 @@ const categories = ['Todos', 'Alimentos', 'Accesorios', 'Cuidado']
 export default function ShopPage({ setView, addToCart }: { setView: SetView; addToCart: (product: Product) => void }) {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('Todos')
+  const [stockFilter, setStockFilter] = useState<'all' | 'available' | 'low'>('all')
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -36,9 +37,15 @@ export default function ShopPage({ setView, addToCart }: { setView: SetView; add
     setError(null)
     try {
       const result = await getProducts({ page: targetPage, pageSize: PAGE_SIZE, search: debouncedSearch, category })
-      const rows = result.data.length > 0 ? result.data : fallbackProducts.slice((targetPage - 1) * PAGE_SIZE, targetPage * PAGE_SIZE)
+      const fallback = fallbackProducts.filter((product) => {
+        const matchesSearch = !debouncedSearch || product.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+        const matchesCategory = category === 'Todos' || product.category === category
+        const matchesStock = stockFilter === 'all' || (stockFilter === 'available' ? product.stock > 0 : product.stock <= 5)
+        return matchesSearch && matchesCategory && matchesStock
+      })
+      const rows = result.data.length > 0 ? result.data : fallback.slice((targetPage - 1) * PAGE_SIZE, targetPage * PAGE_SIZE)
       setProducts((current) => replace ? rows : [...current, ...rows])
-      setHasMore(result.hasMore || rows.length === PAGE_SIZE)
+      setHasMore(result.data.length > 0 ? result.hasMore : targetPage * PAGE_SIZE < fallback.length)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar productos')
       setProducts(fallbackProducts)
@@ -47,7 +54,7 @@ export default function ShopPage({ setView, addToCart }: { setView: SetView; add
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [debouncedSearch, category])
+  }, [debouncedSearch, category, stockFilter])
 
   // Cargar página inicial al cambiar filtros
   useEffect(() => {
@@ -74,7 +81,7 @@ export default function ShopPage({ setView, addToCart }: { setView: SetView; add
         action={<button onClick={() => setView('servicios')} className="flex items-center gap-2 text-sm font-bold text-[#0d5c5b]">Ver servicios <ArrowRight className="size-4" /></button>}
       />
       <div className="mt-8 flex flex-col gap-6 lg:flex-row">
-        <ShopFilters category={category} setCategory={setCategory} />
+        <ShopFilters category={category} setCategory={setCategory} stockFilter={stockFilter} setStockFilter={setStockFilter} />
         <div className="min-w-0 flex-1">
           <div className="relative mb-6">
             <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#8ca59c]" />
@@ -109,7 +116,7 @@ export default function ShopPage({ setView, addToCart }: { setView: SetView; add
   )
 }
 
-function ShopFilters({ category, setCategory }: { category: string; setCategory: (value: string) => void }) {
+function ShopFilters({ category, setCategory, stockFilter, setStockFilter }: { category: string; setCategory: (value: string) => void; stockFilter: 'all' | 'available' | 'low'; setStockFilter: (value: 'all' | 'available' | 'low') => void }) {
   return (
     <aside className="h-fit shrink-0 rounded-3xl bg-white p-5 ring-1 ring-[#e1ebe6] lg:w-60">
       <div className="flex items-center justify-between">
@@ -129,8 +136,9 @@ function ShopFilters({ category, setCategory }: { category: string; setCategory:
       </div>
       <div className="mt-8 hidden border-t border-[#e7eee9] pt-5 text-sm text-[#66817a] lg:block">
         <p className="text-xs font-bold uppercase tracking-wide text-[#829990]">Stock disponible</p>
-        <p className="mt-4">En existencia</p>
-        <p className="mt-3">Últimas unidades</p>
+        <button onClick={() => setStockFilter('available')} className={`mt-4 block w-full text-left ${stockFilter === 'available' ? 'font-bold text-[#0d5c5b]' : 'hover:text-[#0d5c5b]'}`}>En existencia</button>
+        <button onClick={() => setStockFilter('low')} className={`mt-3 block w-full text-left ${stockFilter === 'low' ? 'font-bold text-[#0d5c5b]' : 'hover:text-[#0d5c5b]'}`}>Últimas unidades</button>
+        {stockFilter !== 'all' && <button onClick={() => setStockFilter('all')} className="mt-4 text-xs font-bold text-[#d37c52]">Limpiar stock</button>}
       </div>
     </aside>
   )
