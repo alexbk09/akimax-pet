@@ -1,4 +1,6 @@
 import { supabase } from '@/lib/supabase/client'
+import { dataStore } from '@/lib/data-store'
+import { getCurrentProfile } from './auth'
 import { getMedicalRecords } from './customers'
 import type { Appointment, Customer, MedicalRecord, Pet, Sale, SaleItem } from '@/lib/types'
 
@@ -9,68 +11,14 @@ import type { Appointment, Customer, MedicalRecord, Pet, Sale, SaleItem } from '
  * pueda registrar mascotas sin depender del trigger 0011.
  */
 export async function getMyCustomer(): Promise<Customer | null> {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-
-  // 1. Buscar el cliente vinculado por user_id
-  const { data, error } = await supabase
-    .from('customers')
-    .select('*')
-    .eq('user_id', user.id)
-    .maybeSingle()
-
-  if (error) throw error
-  if (data) return data as Customer
-
-  // 2. No existe → intentar buscarlo por email (usuarios creados antes del trigger)
-  if (user.email) {
-    const { data: byEmail } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('email', user.email)
-      .maybeSingle()
-
-    if (byEmail) {
-      // Vincular el user_id y devolverlo
-      const { data: updated, error: updateError } = await supabase
-        .from('customers')
-        .update({ user_id: user.id })
-        .eq('id', byEmail.id)
-        .select()
-        .single()
-      if (!updateError && updated) return updated as Customer
-    }
-  }
-
-  // 3. Crear el registro de cliente automáticamente
-  const fullName = (user.user_metadata?.full_name as string) ?? user.email?.split('@')[0] ?? 'Cliente'
-  const phone = (user.user_metadata?.phone as string) ?? null
-
-  const { data: created, error: createError } = await supabase
-    .from('customers')
-    .insert({
-      user_id: user.id,
-      name: fullName,
-      email: user.email ?? null,
-      phone,
-      status: 'Activo',
-    })
-    .select()
-    .single()
-
-  if (createError) throw createError
-  return created as Customer
+  const profile = await getCurrentProfile()
+  if (!profile) return null
+  return { id: 1, user_id: profile.id, name: profile.full_name, email: profile.email, phone: profile.phone ?? null, status: 'Activo', created_at: profile.created_at } as Customer
 }
 
 /** Mascotas del cliente autenticado, ordenadas por nombre. */
 export async function getMyPets(customerId: number): Promise<Pet[]> {
-  const { data, error } = await supabase
-    .from('pets')
-    .select('*')
-    .eq('customer_id', customerId)
-    .order('name')
-  if (error) throw error
-  return (data ?? []) as Pet[]
+  return (await dataStore.pets(customerId)).sort((a, b) => a.name.localeCompare(b.name))
 }
 
 /** Crea una mascota para el cliente autenticado. */
@@ -78,27 +26,15 @@ export async function createMyPet(
   customerId: number,
   pet: Omit<Pet, 'id' | 'customer_id' | 'created_at' | 'initials' | 'owner' | 'last'>,
 ): Promise<Pet> {
-  const initials = pet.name
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-
-  const { data, error } = await supabase
-    .from('pets')
-    .insert({ ...pet, customer_id: customerId, initials })
-    .select()
-    .single()
-  if (error) throw error
-  return data as Pet
+  const initials = pet.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()
+  return dataStore.addPet({ ...pet, customer_id: customerId, initials } as Omit<Pet, 'id' | 'created_at'>)
 }
 
 /** Actualiza una mascota del cliente autenticado. */
 export async function updateMyPet(petId: number, patch: Partial<Pet>): Promise<Pet> {
-  const { data, error } = await supabase.from('pets').update(patch).eq('id', petId).select().single()
-  if (error) throw error
-  return data as Pet
+  const updated = await dataStore.updatePet(petId, patch)
+  if (!updated) throw new Error('Mascota no encontrada')
+  return updated
 }
 
 interface MyAppointmentRow extends Appointment {
