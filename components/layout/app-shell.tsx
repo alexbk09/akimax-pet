@@ -52,7 +52,7 @@ export default function AppShell() {
   const [cartOpen, setCartOpen] = useState(false)
   const [toast, setToast] = useState('')
   const { loading: authLoading, isAuthenticated } = useAuth()
-  const { items, count, subtotal, updateQuantity, removeItem, clearCart } = useCart()
+  const { items, count, subtotal, addItem, updateQuantity, removeItem, clearCart } = useCart()
   const { rate } = useExchangeRate()
 
   // Persistir la vista activa para restaurarla si la página se recarga.
@@ -103,7 +103,7 @@ export default function AppShell() {
         {view === 'contacto' && <ContactPage setView={setView} />}
 
         {view === 'inicio' && (isAuthenticated ? <DashboardView setView={setView} /> : <LandingPage setView={setView} />)}
-        {view === 'tienda' && <ShopPage setView={setView} />}
+        {view === 'tienda' && <ShopPage setView={setView} addToCart={(product) => { addItem({ id: `product-${product.id}`, name: product.name, price: product.price, quantity: 1, kind: 'Producto' }); showToast(`${product.name} agregado al carrito`) }} />}
         {view === 'servicios' && <ServicesPage setView={setView} />}
         {view === 'citas' && <RoleGuard permission="appointments:view" onAuthRequired={requireLogin}><AppointmentsPage showToast={showToast} /></RoleGuard>}
         {view === 'pacientes' && <RoleGuard permission="patients:view" onAuthRequired={requireLogin}><PatientsPage showToast={showToast} /></RoleGuard>}

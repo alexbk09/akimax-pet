@@ -6,6 +6,7 @@ import { useDebounce, useInfiniteScroll } from '@/lib/hooks'
 import { getServices } from '@/lib/services/catalog'
 import { CatalogGridSkeleton, EmptyState } from '@/components/ui'
 import type { Service } from '@/lib/types'
+import { fallbackServices } from '@/lib/mock-data'
 
 const PAGE_SIZE = 6
 const filters = ['Todos', 'Veterinaria', 'Peluquería', 'Preventivo', 'Especializado']
@@ -32,8 +33,9 @@ export default function ServicesPage({ setView }: { setView: (view: 'citas') => 
     setError(null)
     try {
       const result = await getServices({ page: targetPage, pageSize: PAGE_SIZE, search: debouncedSearch, area: filter })
-      setServices((current) => replace ? result.data : [...current, ...result.data])
-      setHasMore(result.hasMore)
+      const rows: Service[] = result.data.length ? result.data : fallbackServices.slice((targetPage - 1) * PAGE_SIZE, targetPage * PAGE_SIZE) as unknown as Service[]
+      setServices((current) => replace ? rows : [...current, ...rows])
+      setHasMore(result.hasMore || rows.length === PAGE_SIZE)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar servicios')
       setHasMore(false)

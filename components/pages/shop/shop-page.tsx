@@ -18,7 +18,7 @@ const categories = ['Todos', 'Alimentos', 'Accesorios', 'Cuidado']
  * Scroll infinito con skeleton mientras carga cada página.
  * Si Supabase no está configurado, usa datos de respaldo.
  */
-export default function ShopPage({ setView }: { setView: SetView }) {
+export default function ShopPage({ setView, addToCart }: { setView: SetView; addToCart: (product: Product) => void }) {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('Todos')
   const [products, setProducts] = useState<Product[]>([])
@@ -92,7 +92,7 @@ export default function ShopPage({ setView }: { setView: SetView }) {
             <>
               <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {products.map((product) => (
-                  <ProductCard key={product.id} product={product} onAdd={() => setView('caja')} />
+                  <ProductCard key={product.id} product={product} onAdd={() => addToCart(product)} />
                 ))}
               </div>
               {loading && <div className="mt-6"><CatalogGridSkeleton count={3} /></div>}
